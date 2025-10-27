@@ -8,15 +8,21 @@ namespace SistReservasDeportivas.Models
         public int IdCliente { get; set; }
 
         [Required, MaxLength(10)]
-        public string Dni { get; set; }
+        public string Dni { get; set; } = string.Empty;
 
-        [Required, MaxLength(150)]
-        public string NombreCompleto { get; set; }
+        [Required, MaxLength(100)]
+        public string Nombre { get; set; } = string.Empty;
+
+        [Required, MaxLength(100)]
+        public string Apellido { get; set; } = string.Empty;
+
+        [DataType(DataType.Date)]
+        public DateTime FechaNacimiento { get; set; }
 
         public string? Telefono { get; set; }
         public string? Email { get; set; }
 
-        // Relación: un cliente puede tener muchas reservas
-        public List<Reserva> Reservas { get; set; }
+        public List<Reserva> Reservas { get; set; } = new();
     }
+
 }

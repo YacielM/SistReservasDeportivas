@@ -1,0 +1,39 @@
+@model IEnumerable<SistReservasDeportivas.Models.Cliente>
+
+<h2>Clientes</h2>
+
+<p>
+    <a asp-action="Create" class="btn btn-primary">Nuevo Cliente</a>
+</p>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>DNI</th>
+            <th>Nombre</th>
+            <th>Apellido</th>
+            <th>Fecha Nacimiento</th>
+            <th>Teléfono</th>
+            <th>Email</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+@foreach (var item in Model)
+{
+        <tr>
+            <td>@item.Dni</td>
+            <td>@item.Nombre</td>
+            <td>@item.Apellido</td>
+            <td>@item.FechaNacimiento.ToShortDateString()</td>
+            <td>@item.Telefono</td>
+            <td>@item.Email</td>
+            <td>
+                <a asp-action="Edit" asp-route-id="@item.IdCliente">Editar</a> |
+                <a asp-action="Details" asp-route-id="@item.IdCliente">Detalles</a> |
+                <a asp-action="Delete" asp-route-id="@item.IdCliente">Eliminar</a>
+            </td>
+        </tr>
+}
+    </tbody>
+</table>

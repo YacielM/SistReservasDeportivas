@@ -8,10 +8,10 @@ namespace SistReservasDeportivas.Models
         public int IdCancha { get; set; }
 
         [Required, MaxLength(100)]
-        public string Nombre { get; set; }
+        public string Nombre { get; set; } = string.Empty;
 
         [Required, MaxLength(50)]
-        public string Tipo { get; set; } // Fútbol 5, Tenis, etc.
+        public string Tipo { get; set; } = string.Empty; // Fútbol 5, Tenis, etc.
 
         [Required]
         public decimal PrecioHora { get; set; }
@@ -19,6 +19,6 @@ namespace SistReservasDeportivas.Models
         public string Estado { get; set; } = "Disponible";
 
         // Relación: una cancha puede tener muchas reservas
-        public List<Reserva> Reservas { get; set; }
+        public List<Reserva> Reservas { get; set; } = new();
     }
 }
