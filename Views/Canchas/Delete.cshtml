@@ -1,32 +1,32 @@
-@model SistReservasDeportivas.Models.Cliente
+@model SistReservasDeportivas.Models.Cancha
 
-<h2 class="mb-3 text-danger">Eliminar Cliente</h2>
+<h2 class="mb-3 text-danger">Eliminar Cancha</h2>
 
 <div class="alert alert-warning">
-    <strong>¿Seguro que deseas eliminar este cliente?</strong>
+    <strong>¿Seguro que deseas eliminar esta cancha?</strong>
     Esta acción no se puede deshacer.
 </div>
 
 <div class="card shadow-sm mb-3">
     <div class="card-body">
         <dl class="row">
-            <dt class="col-sm-3">DNI</dt>
-            <dd class="col-sm-9">@Model.Dni</dd>
-
             <dt class="col-sm-3">Nombre</dt>
             <dd class="col-sm-9">@Model.Nombre</dd>
 
-            <dt class="col-sm-3">Apellido</dt>
-            <dd class="col-sm-9">@Model.Apellido</dd>
+            <dt class="col-sm-3">Tipo</dt>
+            <dd class="col-sm-9">@Model.Tipo</dd>
 
-            <dt class="col-sm-3">Email</dt>
-            <dd class="col-sm-9">@Model.Email</dd>
+            <dt class="col-sm-3">Precio por hora</dt>
+            <dd class="col-sm-9">@Model.PrecioHora.ToString("C")</dd>
+
+            <dt class="col-sm-3">Estado</dt>
+            <dd class="col-sm-9">@Model.Estado</dd>
         </dl>
     </div>
 </div>
 
 <form asp-action="DeleteConfirmed">
-    <input type="hidden" asp-for="IdCliente" />
+    <input type="hidden" asp-for="IdCancha" />
     <div class="d-flex gap-2">
         <button type="submit" class="btn btn-danger">
             <i class="bi bi-trash"></i> Eliminar
