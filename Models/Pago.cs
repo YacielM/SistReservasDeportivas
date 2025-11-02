@@ -21,6 +21,6 @@ namespace SistReservasDeportivas.Models
 
         // Navegación
         [ForeignKey("IdReserva")]
-        public Reserva Reserva { get; set; } = null!;
+        public Reserva? Reserva { get; set; }
     }
 }

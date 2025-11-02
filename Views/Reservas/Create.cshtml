@@ -1,0 +1,76 @@
+@model SistReservasDeportivas.Models.Reserva
+
+<h2 class="mb-3">Nueva Reserva</h2>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <!-- IMPORTANTE: method="post" -->
+        <form asp-action="Create" method="post">
+            @Html.AntiForgeryToken()
+
+            <div asp-validation-summary="All" class="alert alert-danger"></div>
+
+            <div class="row g-3">
+                <!-- Cliente -->
+                <div class="col-md-6">
+                    <label asp-for="IdCliente" class="form-label">Cliente</label>
+                    <select asp-for="IdCliente" class="form-select" asp-items="@(ViewData["IdCliente"] as SelectList)">
+                        <option value="">-- Seleccione un cliente --</option>
+                    </select>
+                    <span asp-validation-for="IdCliente" class="text-danger"></span>
+                </div>
+
+                <!-- Cancha -->
+                <div class="col-md-6">
+                    <label asp-for="IdCancha" class="form-label">Cancha</label>
+                    <select asp-for="IdCancha" class="form-select" asp-items="@(ViewData["IdCancha"] as SelectList)">
+                        <option value="">-- Seleccione una cancha --</option>
+                    </select>
+                    <span asp-validation-for="IdCancha" class="text-danger"></span>
+                </div>
+
+                <!-- Fecha -->
+                <div class="col-md-4">
+                    <label asp-for="Fecha" class="form-label"></label>
+                    <input asp-for="Fecha" type="date" class="form-control" />
+                    <span asp-validation-for="Fecha" class="text-danger"></span>
+                </div>
+
+                <!-- Hora Inicio -->
+                <div class="col-md-4">
+                    <label asp-for="HoraInicio" class="form-label"></label>
+                    <input asp-for="HoraInicio" type="time" class="form-control" />
+                    <span asp-validation-for="HoraInicio" class="text-danger"></span>
+                </div>
+
+                <!-- Hora Fin -->
+                <div class="col-md-4">
+                    <label asp-for="HoraFin" class="form-label"></label>
+                    <input asp-for="HoraFin" type="time" class="form-control" />
+                    <span asp-validation-for="HoraFin" class="text-danger"></span>
+                </div>
+
+                <!-- Monto -->
+                <div class="col-md-4">
+                    <label asp-for="Monto" class="form-label"></label>
+                    <input asp-for="Monto" class="form-control" />
+                    <span asp-validation-for="Monto" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="mt-4 d-flex gap-2">
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-check-circle"></i> Guardar
+                </button>
+                <a asp-action="Index" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Volver
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- Si usás validación cliente, asegurate que estos scripts estén en el layout -->
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,0 +1,59 @@
+@model SistReservasDeportivas.Models.Reserva
+
+<h2 class="mb-3">Editar Reserva</h2>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <form asp-action="Edit">
+            <input type="hidden" asp-for="IdReserva" />
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="IdCliente" class="form-label">Cliente</label>
+                    <select asp-for="IdCliente" class="form-select" asp-items="ViewBag.IdCliente"></select>
+                    <span asp-validation-for="IdCliente" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6">
+                    <label asp-for="IdCancha" class="form-label">Cancha</label>
+                    <select asp-for="IdCancha" class="form-select" asp-items="ViewBag.IdCancha"></select>
+                    <span asp-validation-for="IdCancha" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-4">
+                    <label asp-for="Fecha" class="form-label"></label>
+                    <input asp-for="Fecha" type="date" class="form-control" />
+                    <span asp-validation-for="Fecha" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-4">
+                    <label asp-for="HoraInicio" class="form-label"></label>
+                    <input asp-for="HoraInicio" type="time" class="form-control" />
+                    <span asp-validation-for="HoraInicio" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-4">
+                    <label asp-for="HoraFin" class="form-label"></label>
+                    <input asp-for="HoraFin" type="time" class="form-control" />
+                    <span asp-validation-for="HoraFin" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-4">
+                    <label asp-for="Monto" class="form-label"></label>
+                    <input asp-for="Monto" class="form-control" />
+                    <span asp-validation-for="Monto" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="mt-4 d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-save"></i> Guardar cambios
+                </button>
+                <a asp-action="Index" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Volver
+                </a>
+            </div>
+        </form>
+    </div>
+</div>

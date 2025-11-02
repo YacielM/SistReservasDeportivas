@@ -1,0 +1,36 @@
+@model SistReservasDeportivas.Models.Reserva
+
+<h2 class="mb-3">Detalles de la Reserva</h2>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-3">Cliente</dt>
+            <dd class="col-sm-9">@Model.Cliente.Nombre @Model.Cliente.Apellido</dd>
+
+            <dt class="col-sm-3">Cancha</dt>
+            <dd class="col-sm-9">@Model.Cancha.Nombre (@Model.Cancha.Tipo)</dd>
+
+            <dt class="col-sm-3">Fecha</dt>
+            <dd class="col-sm-9">@Model.Fecha.ToShortDateString()</dd>
+
+            <dt class="col-sm-3">Hora Inicio</dt>
+            <dd class="col-sm-9">@Model.HoraInicio</dd>
+
+            <dt class="col-sm-3">Hora Fin</dt>
+            <dd class="col-sm-9">@Model.HoraFin</dd>
+
+            <dt class="col-sm-3">Monto</dt>
+            <dd class="col-sm-9">@Model.Monto.ToString("C")</dd>
+        </dl>
+
+        <div class="mt-3 d-flex gap-2">
+            <a asp-action="Edit" asp-route-id="@Model.IdReserva" class="btn btn-warning">
+                <i class="bi bi-pencil-square"></i> Editar
+            </a>
+            <a asp-action="Index" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Volver
+            </a>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,44 @@
+@model SistReservasDeportivas.Models.Reserva
+
+<h2 class="mb-3 text-danger">Eliminar Reserva</h2>
+
+<div class="alert alert-warning">
+    <strong>¿Seguro que deseas eliminar esta reserva?</strong>
+    Esta acción no se puede deshacer.
+</div>
+
+<div class="card shadow-sm mb-3">
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-3">Cliente</dt>
+            <dd class="col-sm-9">@Model.Cliente.Nombre @Model.Cliente.Apellido</dd>
+
+            <dt class="col-sm-3">Cancha</dt>
+            <dd class="col-sm-9">@Model.Cancha.Nombre (@Model.Cancha.Tipo)</dd>
+
+            <dt class="col-sm-3">Fecha</dt>
+            <dd class="col-sm-9">@Model.Fecha.ToShortDateString()</dd>
+
+            <dt class="col-sm-3">Hora Inicio</dt>
+            <dd class="col-sm-9">@Model.HoraInicio</dd>
+
+            <dt class="col-sm-3">Hora Fin</dt>
+            <dd class="col-sm-9">@Model.HoraFin</dd>
+
+            <dt class="col-sm-3">Monto</dt>
+            <dd class="col-sm-9">@Model.Monto.ToString("C")</dd>
+        </dl>
+    </div>
+</div>
+
+<form asp-action="DeleteConfirmed">
+    <input type="hidden" asp-for="IdCliente" />
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-danger">
+            <i class="bi bi-trash"></i> Eliminar
+        </button>
+        <a asp-action="Index" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Cancelar
+        </a>
+    </div>
+</form>

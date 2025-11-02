@@ -29,11 +29,13 @@ namespace SistReservasDeportivas.Models
         public string CreadoPor { get; set; } = "Sistema";
 
         // Navegación
+
         [ForeignKey("IdCancha")]
-        public Cancha Cancha { get; set; } = null!;
+        
+        public Cancha? Cancha { get; set; } = null!;
 
         [ForeignKey("IdCliente")]
-        public Cliente Cliente { get; set; } = null!;
+        public Cliente? Cliente { get; set; } = null!;
 
         public List<Pago> Pagos { get; set; } = new();
     }
