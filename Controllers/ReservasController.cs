@@ -75,14 +75,29 @@ namespace SistReservasDeportivas.Controllers
 
             if (ModelState.IsValid)
             {
+                // Guardar la reserva
                 _context.Add(reserva);
                 await _context.SaveChangesAsync();
+
+                // Crear pago inicial asociado a la reserva
+                var pago = new Pago
+                {
+                    IdReserva = reserva.IdReserva,
+                    Importe = reserva.Monto,
+                    Fecha = DateTime.Now, // fecha actual como fecha de pago
+                    CreadoPor = "Sistema" 
+                };
+
+                _context.Pagos.Add(pago);
+                await _context.SaveChangesAsync();
+
                 return RedirectToAction(nameof(Index));
             }
 
             CargarCombos(reserva.IdCliente, reserva.IdCancha);
             return View(reserva);
         }
+
 
 
         // GET: Reservas/Edit/5

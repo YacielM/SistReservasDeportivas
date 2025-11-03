@@ -24,8 +24,8 @@
 @foreach (var item in Model)
 {
         <tr>
-            <td>@item.Cliente.Nombre @item.Cliente.Apellido</td>
-            <td>@item.Cancha.Nombre (@item.Cancha.Tipo)</td>
+            <td>@item.Cliente!.Nombre @item.Cliente.Apellido</td>
+            <td>@item.Cancha!.Nombre (@item.Cancha.Tipo)</td>
             <td>@item.Fecha.ToShortDateString()</td>
             <td>@item.HoraInicio</td>
             <td>@item.HoraFin</td>

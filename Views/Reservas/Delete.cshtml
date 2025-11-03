@@ -11,10 +11,10 @@
     <div class="card-body">
         <dl class="row">
             <dt class="col-sm-3">Cliente</dt>
-            <dd class="col-sm-9">@Model.Cliente.Nombre @Model.Cliente.Apellido</dd>
+            <dd class="col-sm-9">@Model.Cliente!.Nombre @Model.Cliente.Apellido</dd>
 
             <dt class="col-sm-3">Cancha</dt>
-            <dd class="col-sm-9">@Model.Cancha.Nombre (@Model.Cancha.Tipo)</dd>
+            <dd class="col-sm-9">@Model.Cancha!.Nombre (@Model.Cancha.Tipo)</dd>
 
             <dt class="col-sm-3">Fecha</dt>
             <dd class="col-sm-9">@Model.Fecha.ToShortDateString()</dd>
@@ -31,7 +31,7 @@
     </div>
 </div>
 
-<form asp-action="DeleteConfirmed">
+<form asp-action="Delete">
     <input type="hidden" asp-for="IdCliente" />
     <div class="d-flex gap-2">
         <button type="submit" class="btn btn-danger">
