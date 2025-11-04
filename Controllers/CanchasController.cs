@@ -17,8 +17,31 @@ namespace SistReservasDeportivas.Controllers
         // GET: Canchas
         public async Task<IActionResult> Index()
         {
-            return View(await _context.Canchas.ToListAsync());
+            var canchas = await _context.Canchas
+                .Include(c => c.Reservas)
+                .ToListAsync();
+
+            var ahora = DateTime.Now;
+
+            foreach (var cancha in canchas)
+            {
+                // si está en mantenimiento, no tocar
+                if (cancha.Estado == "Mantenimiento") continue;
+
+                var reservaEnCurso = cancha.Reservas.Any(r =>
+                    !r.Cancelada &&
+                    r.Fecha.Date == ahora.Date &&
+                    r.HoraInicio <= ahora.TimeOfDay &&
+                    r.HoraFin > ahora.TimeOfDay);
+
+                cancha.Estado = reservaEnCurso ? "Ocupada" : "Disponible";
+            }
+
+            await _context.SaveChangesAsync();
+
+            return View(canchas);
         }
+
 
         // GET: Canchas/Details/5
         public async Task<IActionResult> Details(int? id)

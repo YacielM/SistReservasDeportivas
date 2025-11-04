@@ -28,6 +28,9 @@ namespace SistReservasDeportivas.Models
 
         public string CreadoPor { get; set; } = "Sistema";
 
+        public bool Cancelada { get; set; } = false;
+
+
         // Navegación
 
         [ForeignKey("IdCancha")]

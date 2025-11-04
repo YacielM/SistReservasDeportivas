@@ -4,7 +4,6 @@
 
 <div class="card shadow-sm">
     <div class="card-body">
-        <!-- IMPORTANTE: method="post" -->
         <form asp-action="Create" method="post">
             @Html.AntiForgeryToken()
 
@@ -71,6 +70,5 @@
 </div>
 
 @section Scripts {
-    <!-- Si usás validación cliente, asegurate que estos scripts estén en el layout -->
     <partial name="_ValidationScriptsPartial" />
 }
