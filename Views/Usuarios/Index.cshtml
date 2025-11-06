@@ -1,0 +1,40 @@
+@model IEnumerable<SistReservasDeportivas.Models.Usuario>
+
+<h2 class="mb-3">Gestión de Usuarios</h2>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Nombre</th>
+            <th>Apellido</th>
+            <th>Email</th>
+            <th>Rol</th>
+            <th>Avatar</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach (var u in Model)
+    {
+        <tr>
+            <td>@u.Nombre</td>
+            <td>@u.Apellido</td>
+            <td>@u.Email</td>
+            <td>@u.Rol</td>
+            <td>
+                @if (!string.IsNullOrEmpty(u.Avatar))
+                {
+                    <img src="~/avatars/@u.Avatar" width="50" class="rounded-circle" />
+                }
+            </td>
+            <td>
+                <a asp-action="Details" asp-route-id="@u.IdUsuario" class="btn btn-info btn-sm">Detalles</a>
+                <a asp-action="Edit" asp-route-id="@u.IdUsuario" class="btn btn-warning btn-sm">Editar</a>
+                <a asp-action="Delete" asp-route-id="@u.IdUsuario" class="btn btn-danger btn-sm">Eliminar</a>
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+<a asp-action="Create" class="btn btn-success">Nuevo Usuario</a>

@@ -1,0 +1,12 @@
+@model SistReservasDeportivas.Models.Usuario
+
+<h2>Eliminar Usuario</h2>
+
+<p>¿Seguro que deseas eliminar al usuario <strong>@Model.Nombre @Model.Apellido</strong>?</p>
+
+<form asp-action="Delete">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="IdUsuario" />
+    <button type="submit" class="btn btn-danger">Eliminar</button>
+    <a asp-action="Index" class="btn btn-secondary">Cancelar</a>
+</form>

@@ -1,0 +1,17 @@
+@model SistReservasDeportivas.Models.Usuario
+
+<h2>Detalles de Usuario</h2>
+
+<div>
+    <p><strong>Nombre:</strong> @Model.Nombre</p>
+    <p><strong>Apellido:</strong> @Model.Apellido</p>
+    <p><strong>Email:</strong> @Model.Email</p>
+    <p><strong>Rol:</strong> @Model.Rol</p>
+    @if (!string.IsNullOrEmpty(Model.Avatar))
+    {
+        <p><img src="~/avatars/@Model.Avatar" width="100" class="rounded-circle" /></p>
+    }
+</div>
+
+<a asp-action="Edit" asp-route-id="@Model.IdUsuario" class="btn btn-warning">Editar</a>
+<a asp-action="Index" class="btn btn-secondary">Volver</a>

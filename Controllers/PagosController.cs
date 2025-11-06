@@ -3,9 +3,11 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using SistReservasDeportivas.Data;
 using SistReservasDeportivas.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace SistReservasDeportivas.Controllers
 {
+    [Authorize]
     public class PagosController : Controller
     {
         private readonly DataContext _context;
@@ -149,6 +151,7 @@ namespace SistReservasDeportivas.Controllers
         // POST: Pagos/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var pago = await _context.Pagos.FindAsync(id);
