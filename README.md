@@ -71,18 +71,43 @@ Permite gestionar clientes, canchas, reservas y pagos, con validaciones de negoc
 1. Clonar el repositorio
    ```bash
    git clone https://github.com/usuario/sist-reservas-deportivas.git
+
    Configurar la base de datos en appsettings.json
 
-Ejecutar migraciones
+    Configurar la base de datos en appsettings.json
 
-bash
-dotnet ef database update
-Levantar el proyecto
+    Ajustar la cadena de conexión a tu servidor MySQL.
 
-bash
-dotnet run
-Probar la API con Postman:
+    Ejecutar migraciones, eso crearía la estructura de tablas
 
-POST /api/auth/login → obtener token JWT
+        dotnet ef database update
 
-Usar Authorization: Bearer {{token}} en los demás endpoints
+    Levantar el proyecto
+
+        dotnet run
+
+Datos iniciales
+
+    Si la base está vacía, al iniciar se crean automáticamente:
+
+        Canchas de ejemplo
+
+        Clientes de prueba
+
+        Usuarios con roles:
+
+            Administrador → admin@sist.com / admin123
+
+            Empleado → empleado@sist.com / empleado123
+
+    Si ya tenés datos cargados, el seed no los duplica.
+
+Probar la API con Postman
+
+    POST /api/auth/login → obtener token JWT
+
+    Usar el token en los demás endpoints con el header:
+        Authorization: Bearer {{token}}
+
+
+

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SistReservasDeportivas.Data;
@@ -52,6 +53,7 @@ namespace SistReservasDeportivas.Controllers.Api
         }
 
         // DELETE: api/ClientesApi/5
+        [Authorize(Roles = "Administrador")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCliente(int id)
         {

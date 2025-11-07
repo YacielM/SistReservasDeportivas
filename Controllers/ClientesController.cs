@@ -3,10 +3,12 @@ using Microsoft.EntityFrameworkCore;
 using SistReservasDeportivas.Data;
 using SistReservasDeportivas.Models;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 namespace SistReservasDeportivas.Controllers
 {
     [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class ClientesController : Controller
     {
         private readonly DataContext _context;

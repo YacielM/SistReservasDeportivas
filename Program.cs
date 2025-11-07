@@ -92,4 +92,7 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
+// Ejecutar seed de datos
+SistReservasDeportivas.Data.SeedData.Initialize(app.Services);
+
 app.Run();
