@@ -47,3 +47,31 @@
 }
     </tbody>
 </table>
+
+<!-- Bloque de paginación -->
+<div class="d-flex justify-content-center mt-3">
+    <nav>
+        <ul class="pagination">
+            @{
+                int totalPages = (ViewData["TotalPages"] as int?) ?? 0;
+                int currentPage = (ViewData["CurrentPage"] as int?) ?? 1;
+            }
+
+
+            <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                <a class="page-link" asp-action="Index" asp-route-page="@(currentPage - 1)">Anterior</a>
+            </li>
+
+            @for (int i = 1; i <= totalPages; i++)
+            {
+                <li class="page-item @(i == currentPage ? "active" : "")">
+                    <a class="page-link" asp-action="Index" asp-route-page="@i">@i</a>
+                </li>
+            }
+
+            <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                <a class="page-link" asp-action="Index" asp-route-page="@(currentPage + 1)">Siguiente</a>
+            </li>
+        </ul>
+    </nav>
+</div>

@@ -36,16 +36,27 @@ namespace SistReservasDeportivas.Controllers
         }
 
         // GET: Pagos
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int page = 1, int pageSize = 10)
         {
-            var pagos = _context.Pagos
+            var query = _context.Pagos
                 .Include(p => p.Reserva)
                     .ThenInclude(r => r!.Cliente)
                 .Include(p => p.Reserva)
-                    .ThenInclude(r => r!.Cancha);
+                    .ThenInclude(r => r!.Cancha)
+                .OrderByDescending(p => p.Fecha);
 
-            return View(await pagos.ToListAsync());
+            var totalRegistros = await query.CountAsync();
+            var pagos = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            ViewData["TotalPages"] = (int)Math.Ceiling(totalRegistros / (double)pageSize);
+            ViewData["CurrentPage"] = page;
+
+            return View(pagos);
         }
+
 
         // GET: Pagos/Details/5
         public async Task<IActionResult> Details(int? id)

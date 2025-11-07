@@ -9,11 +9,12 @@
             <div asp-validation-summary="All" class="alert alert-danger"></div>
 
             <div class="row g-3">
+                <!-- Reserva con búsqueda AJAX -->
                 <div class="col-md-6">
-                    <label asp-for="IdReserva" class="form-label">Reserva</label>
-                    <select asp-for="IdReserva" class="form-select" asp-items="@(ViewData["IdReserva"] as SelectList)">
-                        <option value="">-- Seleccione una reserva --</option>
-                    </select>
+                    <label class="form-label">Reserva</label>
+                    <input type="text" id="reservaSearch" class="form-control" placeholder="Buscar reserva..." />
+                    <input type="hidden" asp-for="IdReserva" id="IdReserva" />
+                    <div id="reservaResults" class="list-group"></div>
                     <span asp-validation-for="IdReserva" class="text-danger"></span>
                 </div>
 
@@ -41,3 +42,33 @@
         </form>
     </div>
 </div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        async function buscarReservas(q) {
+            const res = await fetch(`/api/ReservasApi/search?q=${encodeURIComponent(q)}`);
+            return await res.json();
+        }
+
+        document.getElementById("reservaSearch").addEventListener("input", async e => {
+            const q = e.target.value;
+            const resultsDiv = document.getElementById("reservaResults");
+            resultsDiv.innerHTML = "";
+            if (q.length < 2) return;
+            const reservas = await buscarReservas(q);
+            reservas.forEach(r => {
+                const item = document.createElement("button");
+                item.type = "button";
+                item.className = "list-group-item list-group-item-action";
+                item.textContent = r.descripcion;
+                item.onclick = () => {
+                    document.getElementById("IdReserva").value = r.id;
+                    document.getElementById("reservaSearch").value = r.descripcion;
+                    resultsDiv.innerHTML = "";
+                };
+                resultsDiv.appendChild(item);
+            });
+        });
+    </script>
+}
