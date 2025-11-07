@@ -4,7 +4,7 @@
 
 <div class="card shadow-sm">
     <div class="card-body">
-        <form asp-action="Create">
+        <form asp-action="Create" enctype="multipart/form-data">
             <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
 
             <div class="row g-3">
@@ -43,6 +43,11 @@
                         <option value="Mantenimiento">Mantenimiento</option>
                     </select>
                     <span asp-validation-for="Estado" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">Foto de la cancha</label>
+                    <input type="file" class="form-control" name="FotoFile" />
                 </div>
             </div>
 

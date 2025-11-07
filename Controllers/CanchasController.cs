@@ -66,10 +66,21 @@ namespace SistReservasDeportivas.Controllers
         // POST: Canchas/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("IdCancha,Nombre,Tipo,PrecioHora,Estado")] Cancha cancha)
+        public async Task<IActionResult> Create(Cancha cancha, IFormFile? FotoFile)
         {
             if (ModelState.IsValid)
             {
+                if (FotoFile != null && FotoFile.Length > 0)
+                {
+                    var fileName = Guid.NewGuid() + Path.GetExtension(FotoFile.FileName);
+                    var path = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/canchas", fileName);
+                    using (var stream = new FileStream(path, FileMode.Create))
+                    {
+                        await FotoFile.CopyToAsync(stream);
+                    }
+                    cancha.Foto = fileName;
+                }
+
                 _context.Add(cancha);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
@@ -91,24 +102,33 @@ namespace SistReservasDeportivas.Controllers
         // POST: Canchas/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("IdCancha,Nombre,Tipo,PrecioHora,Estado")] Cancha cancha)
+        public async Task<IActionResult> Edit(int id, Cancha cancha, IFormFile? FotoFile)
         {
             if (id != cancha.IdCancha) return NotFound();
 
+            var dbCancha = await _context.Canchas.FindAsync(id);
+            if (dbCancha == null) return NotFound();
+
             if (ModelState.IsValid)
             {
-                try
+                dbCancha.Nombre = cancha.Nombre;
+                dbCancha.Tipo = cancha.Tipo;
+                dbCancha.PrecioHora = cancha.PrecioHora;
+                dbCancha.Estado = cancha.Estado;
+
+                if (FotoFile != null && FotoFile.Length > 0)
                 {
-                    _context.Update(cancha);
-                    await _context.SaveChangesAsync();
+                    var fileName = Guid.NewGuid() + Path.GetExtension(FotoFile.FileName);
+                    var path = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/canchas", fileName);
+                    using (var stream = new FileStream(path, FileMode.Create))
+                    {
+                        await FotoFile.CopyToAsync(stream);
+                    }
+                    dbCancha.Foto = fileName;
                 }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!_context.Canchas.Any(e => e.IdCancha == cancha.IdCancha))
-                        return NotFound();
-                    else
-                        throw;
-                }
+
+                _context.Update(dbCancha);
+                await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
             return View(cancha);

@@ -4,7 +4,7 @@
 
 <div class="card shadow-sm">
     <div class="card-body">
-        <form asp-action="Edit">
+        <form asp-action="Edit" enctype="multipart/form-data">
             <input type="hidden" asp-for="IdCancha" />
             <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
 
@@ -44,6 +44,17 @@
                         <option value="Mantenimiento">Mantenimiento</option>
                     </select>
                     <span asp-validation-for="Estado" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">Foto de la cancha</label>
+                    <input type="file" class="form-control" name="FotoFile" />
+                    @if (!string.IsNullOrEmpty(Model.Foto))
+                    {
+                        <div class="mt-2">
+                            <img src="~/canchas/@Model.Foto" width="120" style="object-fit: cover;" class="rounded" />
+                        </div>
+                    }
                 </div>
             </div>
 

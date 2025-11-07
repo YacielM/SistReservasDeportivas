@@ -111,13 +111,18 @@ namespace SistReservasDeportivas.Controllers
                 _context.Add(reserva);
                 await _context.SaveChangesAsync();
 
-                // Crear pago inicial
+                // Crear pago inicial con CreadoPor dinámico
+                var usuarioNombre = HttpContext.Session.GetString("UsuarioNombre");
+                var usuarioApellido = HttpContext.Session.GetString("UsuarioApellido");
+
                 var pago = new Pago
                 {
                     IdReserva = reserva.IdReserva,
                     Importe = reserva.Monto,
                     Fecha = DateTime.Now,
-                    CreadoPor = "Sistema"
+                    CreadoPor = (usuarioNombre != null && usuarioApellido != null)
+                        ? $"{usuarioNombre} {usuarioApellido}"
+                        : "Sistema"
                 };
 
                 _context.Pagos.Add(pago);
@@ -129,6 +134,7 @@ namespace SistReservasDeportivas.Controllers
             CargarCombos(reserva.IdCliente, reserva.IdCancha);
             return View(reserva);
         }
+
 
 
         // GET: Reservas/Edit/5

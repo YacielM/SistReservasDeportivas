@@ -18,6 +18,8 @@ namespace SistReservasDeportivas.Models
 
         public string Estado { get; set; } = "Disponible";
 
+        public string? Foto { get; set; }
+
         // Relación: una cancha puede tener muchas reservas
         public List<Reserva> Reservas { get; set; } = new();
     }

@@ -1,12 +1,24 @@
 html { font-size: 14px; }
 
+html, body {
+  height: 100%;          /* que ocupen toda la ventana */
+}
+
 body {
+  display: flex;
+  flex-direction: column;
   background-color: #2b2b2b; 
   color: #f0f0f0;            
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  margin-bottom: 60px;
+  margin: 0;              /* quita márgenes por defecto */
 }
 
+/* Asegura que el contenido no quede tapado por el footer:
+   dejar un padding-bottom igual (o mayor) a la altura del footer */
+main {
+  flex: 1;                /* el contenido se expande */
+  padding-bottom: 80px;   /* espacio para el footer (ajustar si cambias la altura) */
+}
 
 .navbar {
   background-color: #1a73e8; 
@@ -20,26 +32,29 @@ body {
   color: #dfefff !important;
 }
 
-
+/* Footer: posición relativa y z-index bajo para que no se superponga encima de otros elementos con z-index mayor.
+   Mantener mt-auto en el layout para que quede en la parte inferior si el contenido es corto. */
 .footer {
   background-color: #1a73e8;
   color: #fff;
   text-align: center;
   padding: 10px 0;
+  position: relative;
+  z-index: 0;
 }
+
 .footer a {
   color: #fff;
   text-decoration: underline;
 }
 .footer a:hover { color: #dfefff; }
 
-
+/* resto de estilos (sin cambios funcionales) */
 .card {
   background-color: #3a3a3a; 
   border: none;
 }
 .card-body { color: #f0f0f0; }
-
 
 .form-control,
 .form-select {
@@ -55,7 +70,6 @@ body {
   border-color: #1a73e8;
   box-shadow: none;
 }
-
 
 .table {
   color: #f0f0f0;
@@ -75,18 +89,15 @@ body {
 .table-striped tbody tr:nth-of-type(even) { background-color: #2b2b2b; }
 .table-hover tbody tr:hover { background-color: #444; }
 
-
 .table > :not(caption) > * > * {
   border-color: #555;
 }
-
 
 .table a {
   color: #9ec5ff; 
   text-decoration: none;
 }
 .table a:hover { color: #cfe0ff; }
-
 
 .btn {
   border: none;
@@ -109,12 +120,10 @@ body {
 .btn-secondary { background-color: #6c757d; color: #fff; }
 .btn-secondary:hover { filter: brightness(1.15); }
 
-
 .badge { font-weight: 600; }
 .badge.bg-success { background-color: #2ea043 !important; }
 .badge.bg-danger  { background-color: #cf222e !important; }
 .badge.bg-secondary { background-color: #6c757d !important; }
-
 
 .text-danger { font-size: 0.9rem; }
 .alert-danger { background-color: #8b0000; color: #fff; border: none; }
