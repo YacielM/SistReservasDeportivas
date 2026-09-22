@@ -3,12 +3,10 @@ using Microsoft.EntityFrameworkCore;
 using SistReservasDeportivas.Data;
 using SistReservasDeportivas.Models;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 namespace SistReservasDeportivas.Controllers
 {
-    [Authorize]
-    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [Authorize(Roles = "Administrador,Empleado")]
     public class ClientesController : Controller
     {
         private readonly DataContext _context;
@@ -55,7 +53,6 @@ namespace SistReservasDeportivas.Controllers
             }
             else
             {
-                // 🔎 Depuración: mostrar errores de validación en la consola
                 var errores = ModelState.Values.SelectMany(v => v.Errors);
                 foreach (var error in errores)
                 {
@@ -63,10 +60,8 @@ namespace SistReservasDeportivas.Controllers
                 }
             }
 
-            // Si no es válido, vuelve a mostrar la vista con el modelo
             return View(cliente);
         }
-
 
         // GET: Clientes/Edit/5
         public async Task<IActionResult> Edit(int? id)

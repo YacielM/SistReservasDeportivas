@@ -1,15 +1,13 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using SistReservasDeportivas.Data;
 using SistReservasDeportivas.Models;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 namespace SistReservasDeportivas.Controllers
 {
-    [Authorize]
-    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [Authorize(Roles = "Administrador,Empleado")]
     public class PagosController : Controller
     {
         private readonly DataContext _context;
@@ -59,7 +57,6 @@ namespace SistReservasDeportivas.Controllers
             return View(pagos);
         }
 
-
         // GET: Pagos/Details/5
         public async Task<IActionResult> Details(int? id)
         {
@@ -77,7 +74,7 @@ namespace SistReservasDeportivas.Controllers
             return View(pago);
         }
 
-        // GET: Pagos/Create (si lo mantenés activo)
+        // GET: Pagos/Create
         public IActionResult Create()
         {
             CargarReservas();
@@ -93,7 +90,13 @@ namespace SistReservasDeportivas.Controllers
 
             if (ModelState.IsValid)
             {
-                pago.CreadoPor = "Sistema"; // set automático
+                var usuarioNombre = HttpContext.Session.GetString("UsuarioNombre");
+                var usuarioApellido = HttpContext.Session.GetString("UsuarioApellido");
+
+                pago.CreadoPor = (usuarioNombre != null && usuarioApellido != null)
+                    ? $"{usuarioNombre} {usuarioApellido}"
+                    : "Sistema";
+
                 _context.Add(pago);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
@@ -127,7 +130,6 @@ namespace SistReservasDeportivas.Controllers
             {
                 try
                 {
-                    pago.CreadoPor = "Sistema"; // mantener auditoría
                     _context.Update(pago);
                     await _context.SaveChangesAsync();
                 }
@@ -145,6 +147,7 @@ namespace SistReservasDeportivas.Controllers
         }
 
         // GET: Pagos/Delete/5
+        [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null) return NotFound();

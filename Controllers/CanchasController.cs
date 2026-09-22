@@ -3,12 +3,10 @@ using Microsoft.EntityFrameworkCore;
 using SistReservasDeportivas.Data;
 using SistReservasDeportivas.Models;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 namespace SistReservasDeportivas.Controllers
 {
-    [Authorize]
-    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [Authorize(Roles = "Administrador,Empleado")]
     public class CanchasController : Controller
     {
         private readonly DataContext _context;
@@ -29,7 +27,6 @@ namespace SistReservasDeportivas.Controllers
 
             foreach (var cancha in canchas)
             {
-                // si está en mantenimiento, no tocar
                 if (cancha.Estado == "Mantenimiento") continue;
 
                 var reservaEnCurso = cancha.Reservas.Any(r =>
@@ -46,7 +43,6 @@ namespace SistReservasDeportivas.Controllers
             return View(canchas);
         }
 
-
         // GET: Canchas/Details/5
         public async Task<IActionResult> Details(int? id)
         {
@@ -60,6 +56,7 @@ namespace SistReservasDeportivas.Controllers
         }
 
         // GET: Canchas/Create
+        [Authorize(Roles = "Administrador")]
         public IActionResult Create()
         {
             return View();
@@ -68,6 +65,7 @@ namespace SistReservasDeportivas.Controllers
         // POST: Canchas/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Create(Cancha cancha, IFormFile? FotoFile)
         {
             if (ModelState.IsValid)
@@ -91,6 +89,7 @@ namespace SistReservasDeportivas.Controllers
         }
 
         // GET: Canchas/Edit/5
+        [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null) return NotFound();
@@ -104,6 +103,7 @@ namespace SistReservasDeportivas.Controllers
         // POST: Canchas/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Edit(int id, Cancha cancha, IFormFile? FotoFile)
         {
             if (id != cancha.IdCancha) return NotFound();
@@ -137,6 +137,7 @@ namespace SistReservasDeportivas.Controllers
         }
 
         // GET: Canchas/Delete/5
+        [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null) return NotFound();

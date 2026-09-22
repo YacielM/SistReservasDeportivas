@@ -8,12 +8,10 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 namespace SistReservasDeportivas.Controllers
 {
-    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-    [Authorize] // por defecto requiere login
+    [Authorize(Roles = "Administrador")]
     public class UsuariosController : Controller
     {
         private readonly DataContext _context;
@@ -28,7 +26,7 @@ namespace SistReservasDeportivas.Controllers
         }
 
         // =====================
-        // LOGIN (JWT)
+        // LOGIN (JWT API)
         // =====================
         [AllowAnonymous]
         [HttpPost]
@@ -42,7 +40,6 @@ namespace SistReservasDeportivas.Controllers
             if (result == PasswordVerificationResult.Failed)
                 return Unauthorized("Usuario o clave incorrectos");
 
-            // Generar token
             var claims = new[]
             {
                 new Claim(JwtRegisteredClaimNames.Sub, usuario.IdUsuario.ToString()),
@@ -69,9 +66,8 @@ namespace SistReservasDeportivas.Controllers
         }
 
         // =====================
-        // LISTADO (solo Admin)
+        // LISTADO
         // =====================
-        [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Index()
         {
             return View(await _context.Usuarios.ToListAsync());
@@ -80,23 +76,19 @@ namespace SistReservasDeportivas.Controllers
         // =====================
         // CREAR USUARIO
         // =====================
-        [Authorize(Roles = "Administrador")]
         public IActionResult Create()
         {
             return View();
         }
 
-        [Authorize(Roles = "Administrador")]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Usuario usuario, IFormFile? AvatarFile)
         {
             if (ModelState.IsValid)
             {
-                // Hash de clave
                 usuario.Clave = _passwordHasher.HashPassword(usuario, usuario.Clave);
 
-                // Guardar avatar si se subió
                 if (AvatarFile != null && AvatarFile.Length > 0)
                 {
                     var fileName = Guid.NewGuid() + Path.GetExtension(AvatarFile.FileName);
@@ -118,7 +110,6 @@ namespace SistReservasDeportivas.Controllers
         // =====================
         // EDITAR USUARIO
         // =====================
-        [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null) return NotFound();
@@ -127,7 +118,6 @@ namespace SistReservasDeportivas.Controllers
             return View(usuario);
         }
 
-        [Authorize(Roles = "Administrador")]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, Usuario usuario, IFormFile? AvatarFile)
@@ -144,13 +134,11 @@ namespace SistReservasDeportivas.Controllers
                 dbUsuario.Email = usuario.Email;
                 dbUsuario.Rol = usuario.Rol;
 
-                // Si se cambió la clave, re-hashear
                 if (!string.IsNullOrEmpty(usuario.Clave))
                 {
                     dbUsuario.Clave = _passwordHasher.HashPassword(dbUsuario, usuario.Clave);
                 }
 
-                // Avatar nuevo
                 if (AvatarFile != null && AvatarFile.Length > 0)
                 {
                     var fileName = Guid.NewGuid() + Path.GetExtension(AvatarFile.FileName);
@@ -172,7 +160,6 @@ namespace SistReservasDeportivas.Controllers
         // =====================
         // DETALLES
         // =====================
-        [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null) return NotFound();
@@ -184,7 +171,6 @@ namespace SistReservasDeportivas.Controllers
         // =====================
         // ELIMINAR
         // =====================
-        [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null) return NotFound();
@@ -195,7 +181,6 @@ namespace SistReservasDeportivas.Controllers
 
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var usuario = await _context.Usuarios.FindAsync(id);

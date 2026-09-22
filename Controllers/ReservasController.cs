@@ -4,12 +4,10 @@ using Microsoft.EntityFrameworkCore;
 using SistReservasDeportivas.Data;
 using SistReservasDeportivas.Models;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 namespace SistReservasDeportivas.Controllers
 {
-    [Authorize]
-    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [Authorize(Roles = "Administrador,Empleado")]
     public class ReservasController : Controller
     {
         private readonly DataContext _context;
@@ -38,7 +36,6 @@ namespace SistReservasDeportivas.Controllers
 
             return View(reservas);
         }
-
 
         // GET: Reservas/Details/5
         public async Task<IActionResult> Details(int? id)
@@ -70,18 +67,12 @@ namespace SistReservasDeportivas.Controllers
                 "IdCancha", "NombreTipo", idCanchaSeleccionada);
         }
 
-
-
-
-
         // GET: Reservas/Create
         public IActionResult Create()
         {
             CargarCombos();
             return View();
         }
-
-
 
         // POST: Reservas/Create
         [HttpPost]
@@ -91,13 +82,11 @@ namespace SistReservasDeportivas.Controllers
             ModelState.Remove(nameof(Reserva.Cliente));
             ModelState.Remove(nameof(Reserva.Cancha));
 
-            // Validación: diferencia mínima de 1 hora
             if (reserva.HoraFin <= reserva.HoraInicio.Add(TimeSpan.FromHours(1)))
             {
                 ModelState.AddModelError("HoraFin", "La reserva debe tener al menos 1 hora de duración.");
             }
 
-            // Validación: solapamiento de reservas
             var solapada = await _context.Reservas
                 .Where(r => r.IdCancha == reserva.IdCancha && r.Fecha.Date == reserva.Fecha.Date)
                 .AnyAsync(r =>
@@ -109,7 +98,6 @@ namespace SistReservasDeportivas.Controllers
                 ModelState.AddModelError("", "Ya existe una reserva en ese horario para la misma cancha.");
             }
 
-            // Calcular monto automáticamente
             var cancha = await _context.Canchas.FindAsync(reserva.IdCancha);
             if (cancha != null)
             {
@@ -125,7 +113,6 @@ namespace SistReservasDeportivas.Controllers
                 _context.Add(reserva);
                 await _context.SaveChangesAsync();
 
-                // Crear pago inicial con CreadoPor dinámico
                 var usuarioNombre = HttpContext.Session.GetString("UsuarioNombre");
                 var usuarioApellido = HttpContext.Session.GetString("UsuarioApellido");
 
@@ -149,8 +136,6 @@ namespace SistReservasDeportivas.Controllers
             return View(reserva);
         }
 
-
-
         // GET: Reservas/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
@@ -163,7 +148,6 @@ namespace SistReservasDeportivas.Controllers
             return View(reserva);
         }
 
-
         // POST: Reservas/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -174,13 +158,11 @@ namespace SistReservasDeportivas.Controllers
             ModelState.Remove(nameof(Reserva.Cliente));
             ModelState.Remove(nameof(Reserva.Cancha));
 
-            // Validación: diferencia mínima de 1 hora
             if (reserva.HoraFin <= reserva.HoraInicio.Add(TimeSpan.FromHours(1)))
             {
                 ModelState.AddModelError("HoraFin", "La reserva debe tener al menos 1 hora de duración.");
             }
 
-            // Validación: solapamiento (excluyendo la misma reserva)
             var solapada = await _context.Reservas
                 .Where(r => r.IdCancha == reserva.IdCancha && r.Fecha.Date == reserva.Fecha.Date && r.IdReserva != reserva.IdReserva)
                 .AnyAsync(r =>
@@ -192,7 +174,6 @@ namespace SistReservasDeportivas.Controllers
                 ModelState.AddModelError("", "Ya existe una reserva en ese horario para la misma cancha.");
             }
 
-            // Calcular monto automáticamente
             var cancha = await _context.Canchas.FindAsync(reserva.IdCancha);
             if (cancha != null)
             {
@@ -224,9 +205,8 @@ namespace SistReservasDeportivas.Controllers
             return View(reserva);
         }
 
-
-
         // GET: Reservas/Delete/5
+        [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null) return NotFound();
@@ -240,7 +220,7 @@ namespace SistReservasDeportivas.Controllers
 
             return View(reserva);
         }
-        
+
         // POST: Reservas/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
@@ -268,7 +248,6 @@ namespace SistReservasDeportivas.Controllers
 
             reserva.Cancelada = true;
 
-            // liberar cancha si estaba ocupada
             if (reserva.Cancha != null && reserva.Cancha.Estado == "Ocupada")
             {
                 reserva.Cancha.Estado = "Disponible";
@@ -279,6 +258,5 @@ namespace SistReservasDeportivas.Controllers
 
             return RedirectToAction(nameof(Index));
         }
-
     }
 }
