@@ -18,21 +18,67 @@ namespace SistReservasDeportivas.Controllers
         }
 
         // GET: Reservas
-        public async Task<IActionResult> Index(int page = 1, int pageSize = 10)
+        public async Task<IActionResult> Index(string search, string estado, string sortOrder, int page = 1)
         {
+            int pageSize = 10;
             var query = _context.Reservas
                 .Include(r => r.Cliente)
                 .Include(r => r.Cancha)
-                .OrderBy(r => r.Fecha);
+                .AsQueryable();
 
-            var totalRegistros = await query.CountAsync();
+            // 1. Buscador por Nombre/Apellido de Cliente o Nombre de Cancha
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                string queryLower = search.Trim().ToLower();
+                query = query.Where(r => 
+                    (r.Cliente != null && (r.Cliente.Nombre + " " + r.Cliente.Apellido).ToLower().Contains(queryLower)) ||
+                    (r.Cancha != null && r.Cancha.Nombre.ToLower().Contains(queryLower)));
+            }
+
+            // 2. Filtro por Estado (Activas / Canceladas)
+            if (estado == "activas")
+            {
+                query = query.Where(r => !r.Cancelada);
+            }
+            else if (estado == "canceladas")
+            {
+                query = query.Where(r => r.Cancelada);
+            }
+
+            // 3. Ordenamiento
+            switch (sortOrder)
+            {
+                case "fecha_asc":
+                    query = query.OrderBy(r => r.Fecha).ThenBy(r => r.HoraInicio);
+                    break;
+                case "monto_desc":
+                    query = query.OrderByDescending(r => r.Monto);
+                    break;
+                case "monto_asc":
+                    query = query.OrderBy(r => r.Monto);
+                    break;
+                case "cliente":
+                    query = query.OrderBy(r => r.Cliente.Apellido).ThenBy(r => r.Cliente.Nombre);
+                    break;
+                case "fecha_desc":
+                default:
+                    query = query.OrderByDescending(r => r.Fecha).ThenByDescending(r => r.HoraInicio);
+                    break;
+            }
+
+            int totalItems = await query.CountAsync();
+            int totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+
             var reservas = await query
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
 
-            ViewData["TotalPages"] = (int)Math.Ceiling(totalRegistros / (double)pageSize);
+            ViewData["CurrentSearch"] = search;
+            ViewData["CurrentEstado"] = estado;
+            ViewData["CurrentSort"] = sortOrder;
             ViewData["CurrentPage"] = page;
+            ViewData["TotalPages"] = totalPages;
 
             return View(reservas);
         }
@@ -54,17 +100,23 @@ namespace SistReservasDeportivas.Controllers
 
         private void CargarCombos(int? idClienteSeleccionado = null, int? idCanchaSeleccionada = null)
         {
-            ViewData["IdCliente"] = new SelectList(
-                _context.Clientes
-                    .Select(c => new { c.IdCliente, NombreCompleto = c.Nombre + " " + c.Apellido })
-                    .ToList(),
-                "IdCliente", "NombreCompleto", idClienteSeleccionado);
+            // Si hay un ID seleccionado (ej. en Edit o al volver por error de validación), 
+            // solo cargamos ESE elemento específico en el SelectList.
+            if (idClienteSeleccionado.HasValue)
+            {
+                ViewData["IdCliente"] = new SelectList(
+                    _context.Clientes.Where(c => c.IdCliente == idClienteSeleccionado)
+                        .Select(c => new { c.IdCliente, NombreCompleto = c.Nombre + " " + c.Apellido + " (DNI: " + c.Dni + ")" }),
+                    "IdCliente", "NombreCompleto", idClienteSeleccionado);
+            }
 
-            ViewData["IdCancha"] = new SelectList(
-                _context.Canchas
-                    .Select(c => new { c.IdCancha, NombreTipo = c.Nombre + " (" + c.Tipo + ")" })
-                    .ToList(),
-                "IdCancha", "NombreTipo", idCanchaSeleccionada);
+            if (idCanchaSeleccionada.HasValue)
+            {
+                ViewData["IdCancha"] = new SelectList(
+                    _context.Canchas.Where(c => c.IdCancha == idCanchaSeleccionada)
+                        .Select(c => new { c.IdCancha, NombreTipo = c.Nombre + " (" + c.Tipo + ")" }),
+                    "IdCancha", "NombreTipo", idCanchaSeleccionada);
+            }
         }
 
         // GET: Reservas/Create
@@ -141,7 +193,11 @@ namespace SistReservasDeportivas.Controllers
         {
             if (id == null) return NotFound();
 
-            var reserva = await _context.Reservas.FindAsync(id);
+            var reserva = await _context.Reservas
+                .Include(r => r.Cliente)
+                .Include(r => r.Cancha)
+                .FirstOrDefaultAsync(m => m.IdReserva == id);
+
             if (reserva == null) return NotFound();
 
             CargarCombos(reserva.IdCliente, reserva.IdCancha);

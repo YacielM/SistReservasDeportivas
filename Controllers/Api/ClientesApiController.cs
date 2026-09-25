@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -8,6 +10,7 @@ namespace SistReservasDeportivas.Controllers.Api
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(AuthenticationSchemes = $"{CookieAuthenticationDefaults.AuthenticationScheme},{JwtBearerDefaults.AuthenticationScheme}")]
     public class ClientesApiController : ControllerBase
     {
         private readonly DataContext _context;
@@ -64,14 +67,22 @@ namespace SistReservasDeportivas.Controllers.Api
             return NoContent();
         }
 
+        // GET: api/ClientesApi/search?q=123
         [HttpGet("search")]
-        public async Task<ActionResult<IEnumerable<object>>> SearchClientes(string q)
+        public async Task<ActionResult<IEnumerable<object>>> SearchClientes(string? q = "")
         {
+            q ??= "";
             var clientes = await _context.Clientes
-                .Where(c => (c.Nombre + " " + c.Apellido).Contains(q))
+                .Where(c => string.IsNullOrEmpty(q) || 
+                            c.Dni.Contains(q) || 
+                            c.Nombre.Contains(q) || 
+                            c.Apellido.Contains(q) || 
+                            (c.Nombre + " " + c.Apellido).Contains(q))
                 .Select(c => new {
-                    id = c.IdCliente,
-                    nombre = c.Nombre + " " + c.Apellido
+                    idCliente = c.IdCliente,
+                    dni = c.Dni,
+                    nombre = c.Nombre,
+                    apellido = c.Apellido
                 })
                 .Take(10)
                 .ToListAsync();

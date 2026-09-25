@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -6,7 +7,7 @@ using SistReservasDeportivas.Data;
 
 namespace SistReservasDeportivas.Controllers.Api
 {
-    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [Authorize(AuthenticationSchemes = $"{CookieAuthenticationDefaults.AuthenticationScheme},{JwtBearerDefaults.AuthenticationScheme}")]
     [Route("api/[controller]")]
     [ApiController]
     public class CanchasApiController : ControllerBase
@@ -18,14 +19,18 @@ namespace SistReservasDeportivas.Controllers.Api
             _context = context;
         }
 
+        // GET: api/CanchasApi/search?q=futbol
         [HttpGet("search")]
-        public async Task<ActionResult<IEnumerable<object>>> SearchCanchas(string q)
+        public async Task<ActionResult<IEnumerable<object>>> SearchCanchas(string? q = "")
         {
+            q ??= "";
             var canchas = await _context.Canchas
-                .Where(c => c.Nombre.Contains(q) || c.Tipo.Contains(q))
+                .Where(c => string.IsNullOrEmpty(q) || c.Nombre.Contains(q) || c.Tipo.Contains(q))
                 .Select(c => new {
-                    id = c.IdCancha,
-                    nombre = c.Nombre + " (" + c.Tipo + ")"
+                    idCancha = c.IdCancha,
+                    nombre = c.Nombre,
+                    tipo = c.Tipo,
+                    precioHora = c.PrecioHora
                 })
                 .Take(10)
                 .ToListAsync();

@@ -1,59 +1,235 @@
 @model SistReservasDeportivas.Models.Reserva
+@using System.Globalization
 
-<h2 class="mb-3">Editar Reserva</h2>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
-<div class="card shadow-sm">
-    <div class="card-body">
-        <form asp-action="Edit">
-            <input type="hidden" asp-for="IdReserva" />
-            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+<div id="app" class="container my-4">
+    <h2 class="text-white mb-4 fw-bold">
+        <i class="bi bi-pencil-square text-warning me-2"></i>Editar Reserva #@Model.IdReserva
+    </h2>
 
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <label asp-for="IdCliente" class="form-label">Cliente</label>
-                    <select asp-for="IdCliente" class="form-select" asp-items="ViewBag.IdCliente"></select>
-                    <span asp-validation-for="IdCliente" class="text-danger"></span>
+    <div class="card bg-dark text-white border-secondary shadow">
+        <div class="card-body p-4">
+            <form asp-action="Edit" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="IdReserva" />
+                <input type="hidden" asp-for="CreadoPor" />
+
+                <div asp-validation-summary="All" class="alert alert-danger bg-danger text-white border-0 mb-4" v-if="'@ViewData.ModelState.IsValid' === 'False'"></div>
+
+                <div class="row g-4">
+                    <!-- Buscador AJAX Cliente -->
+                    <div class="col-md-6 position-relative">
+                        <label class="form-label text-info fw-semibold">Cliente (Búsqueda por DNI/Nombre) *</label>
+                        <input type="hidden" name="IdCliente" :value="clienteSeleccionado?.idCliente" required />
+                        
+                        <div class="input-group">
+                            <span class="input-group-text bg-secondary text-white border-0"><i class="bi bi-search"></i></span>
+                            <input type="text" 
+                                   class="form-control bg-secondary text-white border-0" 
+                                   placeholder="Escribe DNI o Nombre para buscar..." 
+                                   v-model="queryCliente" 
+                                   v-on:input="buscarClientes"
+                                   v-on:focus="alEnfocarCliente">
+                        </div>
+
+                        <!-- Dropdown de resultados AJAX -->
+                        <ul class="list-group position-absolute w-100 shadow-lg mt-1 z-3" 
+                            v-if="mostrarResultadosCliente && resultadosClientes.length > 0"
+                            style="max-height: 200px; overflow-y: auto;">
+                            <li v-for="c in resultadosClientes" 
+                                :key="c.idCliente" 
+                                class="list-group-item list-group-item-action bg-dark text-white border-secondary d-flex justify-content-between align-items-center"
+                                style="cursor: pointer;"
+                                v-on:click="seleccionarCliente(c)">
+                                <div>
+                                    <strong>{{ c.nombre }} {{ c.apellido }}</strong>
+                                    <small class="text-muted d-block">DNI: {{ c.dni }}</small>
+                                </div>
+                                <i class="bi bi-check2 text-info"></i>
+                            </li>
+                        </ul>
+
+                        <div v-if="clienteSeleccionado" class="mt-2 text-success small fw-semibold">
+                            <i class="bi bi-check-circle-fill me-1"></i> Seleccionado: {{ clienteSeleccionado.nombre }} {{ clienteSeleccionado.apellido }} (DNI: {{ clienteSeleccionado.dni }})
+                        </div>
+                        <span asp-validation-for="IdCliente" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Buscador AJAX Cancha -->
+                    <div class="col-md-6 position-relative">
+                        <label class="form-label text-info fw-semibold">Cancha (Búsqueda por Nombre/Tipo) *</label>
+                        <input type="hidden" name="IdCancha" :value="canchaSeleccionada?.idCancha" required />
+
+                        <div class="input-group">
+                            <span class="input-group-text bg-secondary text-white border-0"><i class="bi bi-search"></i></span>
+                            <input type="text" 
+                                   class="form-control bg-secondary text-white border-0" 
+                                   placeholder="Haz clic para ver opciones o escribe para buscar..." 
+                                   v-model="queryCancha" 
+                                   v-on:input="buscarCanchas"
+                                   v-on:focus="alEnfocarCancha">
+                        </div>
+
+                        <!-- Dropdown de resultados AJAX -->
+                        <ul class="list-group position-absolute w-100 shadow-lg mt-1 z-3" 
+                            v-if="mostrarResultadosCancha && resultadosCanchas.length > 0"
+                            style="max-height: 200px; overflow-y: auto;">
+                            <li v-for="c in resultadosCanchas" 
+                                :key="c.idCancha" 
+                                class="list-group-item list-group-item-action bg-dark text-white border-secondary d-flex justify-content-between align-items-center"
+                                style="cursor: pointer;"
+                                v-on:click="seleccionarCancha(c)">
+                                <div>
+                                    <strong>{{ c.nombre }}</strong>
+                                    <small class="text-muted d-block">Tipo: {{ c.tipo }} — ${{ c.precioHora }}/hs</small>
+                                </div>
+                                <i class="bi bi-check2 text-info"></i>
+                            </li>
+                        </ul>
+
+                        <div v-if="canchaSeleccionada" class="mt-2 text-success small fw-semibold">
+                            <i class="bi bi-check-circle-fill me-1"></i> Seleccionada: {{ canchaSeleccionada.nombre }} ({{ canchaSeleccionada.tipo }}) — ${{ canchaSeleccionada.precioHora }}/hs
+                        </div>
+                        <span asp-validation-for="IdCancha" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Fecha -->
+                    <div class="col-md-4">
+                        <label asp-for="Fecha" class="form-label fw-semibold">Fecha *</label>
+                        <input asp-for="Fecha" type="date" class="form-control bg-secondary text-white border-0" required />
+                        <span asp-validation-for="Fecha" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Hora Inicio -->
+                    <div class="col-md-4">
+                        <label asp-for="HoraInicio" class="form-label fw-semibold">Hora Inicio *</label>
+                        <input asp-for="HoraInicio" type="time" v-model="horaInicio" v-on:change="calcularMonto" class="form-control bg-secondary text-white border-0" required />
+                        <span asp-validation-for="HoraInicio" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Hora Fin -->
+                    <div class="col-md-4">
+                        <label asp-for="HoraFin" class="form-label fw-semibold">Hora Fin *</label>
+                        <input asp-for="HoraFin" type="time" v-model="horaFin" v-on:change="calcularMonto" class="form-control bg-secondary text-white border-0" required />
+                        <span asp-validation-for="HoraFin" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Monto -->
+                    <div class="col-md-4">
+                        <label asp-for="Monto" class="form-label fw-semibold">Monto Estimado ($) *</label>
+                        <input asp-for="Monto" type="number" step="0.01" v-model="monto" class="form-control bg-secondary text-white border-0" required />
+                        <small class="text-muted d-block mt-1" v-if="canchaSeleccionada">Se recalcula automáticamente al modificar la cancha u horarios.</small>
+                        <span asp-validation-for="Monto" class="text-danger small"></span>
+                    </div>
                 </div>
 
-                <div class="col-md-6">
-                    <label asp-for="IdCancha" class="form-label">Cancha</label>
-                    <select asp-for="IdCancha" class="form-select" asp-items="ViewBag.IdCancha"></select>
-                    <span asp-validation-for="IdCancha" class="text-danger"></span>
+                <div class="mt-4 d-flex gap-2">
+                    <button type="submit" class="btn btn-warning text-dark fw-bold">
+                        <i class="bi bi-check-circle me-1"></i> Guardar Cambios
+                    </button>
+                    <a asp-action="Index" class="btn btn-outline-light">
+                        <i class="bi bi-arrow-left me-1"></i> Volver
+                    </a>
                 </div>
-
-                <div class="col-md-4">
-                    <label asp-for="Fecha" class="form-label"></label>
-                    <input asp-for="Fecha" type="date" class="form-control" />
-                    <span asp-validation-for="Fecha" class="text-danger"></span>
-                </div>
-
-                <div class="col-md-4">
-                    <label asp-for="HoraInicio" class="form-label"></label>
-                    <input asp-for="HoraInicio" type="time" class="form-control" />
-                    <span asp-validation-for="HoraInicio" class="text-danger"></span>
-                </div>
-
-                <div class="col-md-4">
-                    <label asp-for="HoraFin" class="form-label"></label>
-                    <input asp-for="HoraFin" type="time" class="form-control" />
-                    <span asp-validation-for="HoraFin" class="text-danger"></span>
-                </div>
-
-                <div class="col-md-4">
-                    <label asp-for="Monto" class="form-label"></label>
-                    <input asp-for="Monto" class="form-control" />
-                    <span asp-validation-for="Monto" class="text-danger"></span>
-                </div>
-            </div>
-
-            <div class="mt-4 d-flex gap-2">
-                <button type="submit" class="btn btn-primary">
-                    <i class="bi bi-save"></i> Guardar cambios
-                </button>
-                <a asp-action="Index" class="btn btn-secondary">
-                    <i class="bi bi-arrow-left"></i> Volver
-                </a>
-            </div>
-        </form>
+            </form>
+        </div>
     </div>
 </div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    queryCliente: '@Model.Cliente?.Nombre @Model.Cliente?.Apellido (DNI: @Model.Cliente?.Dni)',
+                    resultadosClientes: [],
+                    clienteSeleccionado: {
+                        idCliente: @Model.IdCliente,
+                        nombre: '@Model.Cliente?.Nombre',
+                        apellido: '@Model.Cliente?.Apellido',
+                        dni: '@Model.Cliente?.Dni'
+                    },
+                    mostrarResultadosCliente: false,
+
+                    queryCancha: '@Model.Cancha?.Nombre (@Model.Cancha?.Tipo)',
+                    resultadosCanchas: [],
+                    canchaSeleccionada: {
+                        idCancha: @Model.IdCancha,
+                        nombre: '@Model.Cancha?.Nombre',
+                        tipo: '@Model.Cancha?.Tipo',
+                        precioHora: parseFloat('@(Model.Cancha?.PrecioHora.ToString(CultureInfo.InvariantCulture) ?? "0")')
+                    },
+                    mostrarResultadosCancha: false,
+
+                    horaInicio: '@Model.HoraInicio.ToString(@"hh\:mm")',
+                    horaFin: '@Model.HoraFin.ToString(@"hh\:mm")',
+                    monto: '@Model.Monto.ToString(CultureInfo.InvariantCulture)'
+                };
+            },
+            methods: {
+                async alEnfocarCliente() {
+                    this.mostrarResultadosCliente = true;
+                    if (this.resultadosClientes.length === 0) {
+                        await this.buscarClientes();
+                    }
+                },
+                async buscarClientes() {
+                    try {
+                        const res = await axios.get(`/api/ClientesApi/search?q=${encodeURIComponent(this.queryCliente || '')}`);
+                        this.resultadosClientes = res.data;
+                        this.mostrarResultadosCliente = true;
+                    } catch (err) {
+                        console.error("Error buscando clientes:", err);
+                    }
+                },
+                seleccionarCliente(cliente) {
+                    this.clienteSeleccionado = cliente;
+                    this.queryCliente = `${cliente.nombre} ${cliente.apellido} (DNI: ${cliente.dni})`;
+                    this.mostrarResultadosCliente = false;
+                },
+                async alEnfocarCancha() {
+                    this.mostrarResultadosCancha = true;
+                    if (this.resultadosCanchas.length === 0) {
+                        await this.buscarCanchas();
+                    }
+                },
+                async buscarCanchas() {
+                    try {
+                        const res = await axios.get(`/api/CanchasApi/search?q=${encodeURIComponent(this.queryCancha || '')}`);
+                        this.resultadosCanchas = res.data;
+                        this.mostrarResultadosCancha = true;
+                    } catch (err) {
+                        console.error("Error buscando canchas:", err);
+                    }
+                },
+                seleccionarCancha(cancha) {
+                    this.canchaSeleccionada = cancha;
+                    this.queryCancha = `${cancha.nombre} (${cancha.tipo})`;
+                    this.mostrarResultadosCancha = false;
+                    this.calcularMonto();
+                },
+                calcularMonto() {
+                    if (!this.canchaSeleccionada || !this.horaInicio || !this.horaFin) return;
+
+                    const [hIni, mIni] = this.horaInicio.split(':').map(Number);
+                    const [hFin, mFin] = this.horaFin.split(':').map(Number);
+
+                    const minsInicio = hIni * 60 + mIni;
+                    const minsFin = hFin * 60 + mFin;
+
+                    if (minsFin > minsInicio) {
+                        const horas = (minsFin - minsInicio) / 60;
+                        const total = horas * this.canchaSeleccionada.precioHora;
+                        this.monto = total.toFixed(2);
+                    }
+                }
+            }
+        }).mount('#app');
+    </script>
+}
