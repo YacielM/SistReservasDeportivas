@@ -173,6 +173,8 @@ namespace SistReservasDeportivas.Controllers
                     IdReserva = reserva.IdReserva,
                     Importe = reserva.Monto,
                     Fecha = DateTime.Now,
+                    EstadoPago = "Pendiente", // <-- Acompaña la adición de EstadoPago
+                    MetodoPago = null,        // <-- Queda nulo hasta que el cliente efectúe el pago
                     CreadoPor = (usuarioNombre != null && usuarioApellido != null)
                         ? $"{usuarioNombre} {usuarioApellido}"
                         : "Sistema"
@@ -238,6 +240,13 @@ namespace SistReservasDeportivas.Controllers
                 {
                     reserva.Monto = cancha.PrecioHora * (decimal)horas;
                 }
+            }
+            // Dentro de Edit POST, antes o después de _context.Update(reserva):
+            var pago = await _context.Pagos.FirstOrDefaultAsync(p => p.IdReserva == reserva.IdReserva);
+            if (pago != null && pago.EstadoPago == "Pendiente")
+            {
+                pago.Importe = reserva.Monto;
+                _context.Update(pago);
             }
 
             if (ModelState.IsValid)
@@ -307,6 +316,14 @@ namespace SistReservasDeportivas.Controllers
             if (reserva.Cancha != null && reserva.Cancha.Estado == "Ocupada")
             {
                 reserva.Cancha.Estado = "Disponible";
+            }
+
+            // Actualizar el estado del pago si existe
+            var pago = await _context.Pagos.FirstOrDefaultAsync(p => p.IdReserva == reserva.IdReserva);
+            if (pago != null)
+            {
+                pago.EstadoPago = "Cancelado";
+                _context.Update(pago);
             }
 
             _context.Update(reserva);

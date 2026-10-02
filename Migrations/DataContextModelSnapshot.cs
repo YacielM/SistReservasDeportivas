@@ -104,6 +104,10 @@ namespace SistReservasDeportivas.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
+                    b.Property<string>("EstadoPago")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
                     b.Property<DateTime>("Fecha")
                         .HasColumnType("datetime(6)");
 
@@ -111,7 +115,10 @@ namespace SistReservasDeportivas.Migrations
                         .HasColumnType("int");
 
                     b.Property<decimal>("Importe")
-                        .HasColumnType("decimal(65,30)");
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("MetodoPago")
+                        .HasColumnType("longtext");
 
                     b.HasKey("IdPago");
 

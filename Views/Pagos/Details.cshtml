@@ -1,36 +1,63 @@
 @model SistReservasDeportivas.Models.Pago
 
-<h2 class="mb-3">Detalles del Pago</h2>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
-<div class="card shadow-sm">
-    <div class="card-body">
-        <dl class="row">
-            <dt class="col-sm-3">Reserva</dt>
-            <dd class="col-sm-9">@Model.Reserva!.IdReserva</dd>
+<div class="container my-4" style="max-width: 650px;">
+    <div class="card bg-dark text-white border-secondary shadow">
+        <div class="card-header border-secondary bg-dark d-flex align-items-center">
+            <i class="bi bi-receipt text-info fs-4 me-2"></i>
+            <h4 class="mb-0">Comprobante de Pago #@Model.IdPago</h4>
+        </div>
+        <div class="card-body">
+            <dl class="row mb-0">
+                <dt class="col-sm-4 text-muted">Reserva ID</dt>
+                <dd class="col-sm-8 fw-bold">#@Model.Reserva!.IdReserva</dd>
 
-            <dt class="col-sm-3">Cliente</dt>
-            <dd class="col-sm-9">@Model.Reserva!.Cliente!.Nombre @Model.Reserva!.Cliente!.Apellido</dd>
+                <dt class="col-sm-4 text-muted">Cliente</dt>
+                <dd class="col-sm-8">@Model.Reserva!.Cliente!.Nombre @Model.Reserva!.Cliente!.Apellido</dd>
 
-            <dt class="col-sm-3">Cancha</dt>
-            <dd class="col-sm-9">@Model.Reserva!.Cancha!.Nombre (@Model.Reserva!.Cancha!.Tipo)</dd>
+                <dt class="col-sm-4 text-muted">Cancha</dt>
+                <dd class="col-sm-8">@Model.Reserva!.Cancha!.Nombre (@Model.Reserva!.Cancha!.Tipo)</dd>
 
-            <dt class="col-sm-3">Importe</dt>
-            <dd class="col-sm-9">@Model.Importe.ToString("C")</dd>
+                <dt class="col-sm-4 text-muted">Importe Total</dt>
+                <dd class="col-sm-8 fs-5 text-info fw-bold">@Model.Importe.ToString("C")</dd>
 
-            <dt class="col-sm-3">Fecha</dt>
-            <dd class="col-sm-9">@Model.Fecha.ToShortDateString()</dd>
+                <dt class="col-sm-4 text-muted">Estado</dt>
+                <dd class="col-sm-8">
+                    @if (Model.EstadoPago == "Pagado")
+                    {
+                        <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Pagado</span>
+                    }
+                    else if (Model.EstadoPago == "Anulado")
+                    {
+                        <span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>Anulado</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-warning text-dark"><i class="bi bi-clock me-1"></i>Pendiente</span>
+                    }
+                </dd>
 
-            <dt class="col-sm-3">Creado Por</dt>
-            <dd class="col-sm-9">@Model.CreadoPor</dd>
-        </dl>
+                <dt class="col-sm-4 text-muted">Método de Pago</dt>
+                <dd class="col-sm-8">
+                    <span class="badge bg-secondary">@(string.IsNullOrEmpty(Model.MetodoPago) ? "No especificado" : Model.MetodoPago)</span>
+                </dd>
 
-        <div class="mt-3 d-flex gap-2">
-            <a asp-action="Edit" asp-route-id="@Model.IdPago" class="btn btn-warning">
-                <i class="bi bi-pencil-square"></i> Editar
-            </a>
-            <a asp-action="Index" class="btn btn-secondary">
-                <i class="bi bi-arrow-left"></i> Volver
-            </a>
+                <dt class="col-sm-4 text-muted">Fecha de Emisión</dt>
+                <dd class="col-sm-8">@Model.Fecha.ToShortDateString()</dd>
+
+                <dt class="col-sm-4 text-muted">Registrado Por</dt>
+                <dd class="col-sm-8">@Model.CreadoPor</dd>
+            </dl>
+
+            <div class="mt-4 d-flex justify-content-end gap-2 border-top border-secondary pt-3">
+                <a asp-action="Index" class="btn btn-outline-secondary text-white">
+                    <i class="bi bi-arrow-left me-1"></i> Volver
+                </a>
+                <a asp-action="Edit" asp-route-id="@Model.IdPago" class="btn btn-warning text-dark fw-bold">
+                    <i class="bi bi-pencil-square me-1"></i> Editar
+                </a>
+            </div>
         </div>
     </div>
 </div>

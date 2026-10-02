@@ -1,45 +1,42 @@
 @model SistReservasDeportivas.Models.Pago
 
-<h2 class="mb-3 text-danger">Eliminar Pago</h2>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
-<div class="alert alert-warning">
-    <strong>¿Seguro que deseas eliminar este pago?</strong>
-    Esta acción no se puede deshacer.
-</div>
+<div class="container my-4" style="max-width: 650px;">
+    <div class="card bg-dark text-white border-danger shadow">
+        <div class="card-header border-danger bg-dark text-danger d-flex align-items-center">
+            <i class="bi bi-exclamation-triangle-fill fs-4 me-2"></i>
+            <h4 class="mb-0">Eliminar Registro de Pago</h4>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-warning border-0">
+                <i class="bi bi-info-circle me-1"></i> ¿Estás seguro de que deseas eliminar este registro de pago? Esta operación es irreversible.
+            </div>
 
-<div class="card shadow-sm mb-3">
-    <div class="card-body">
-        <dl class="row">
-            <dt class="col-sm-3">Reserva</dt>
-            <dd class="col-sm-9">@Model.Reserva!.IdReserva</dd>
+            <dl class="row mb-0">
+                <dt class="col-sm-4 text-muted">Reserva ID</dt>
+                <dd class="col-sm-8 fw-bold">#@Model.Reserva!.IdReserva</dd>
 
-            <dt class="col-sm-3">Cliente</dt>
-            <dd class="col-sm-9">@Model.Reserva!.Cliente!.Nombre @Model.Reserva!.Cliente!.Apellido</dd>
+                <dt class="col-sm-4 text-muted">Cliente</dt>
+                <dd class="col-sm-8">@Model.Reserva!.Cliente!.Nombre @Model.Reserva!.Cliente!.Apellido</dd>
 
-            <dt class="col-sm-3">Cancha</dt>
-            <dd class="col-sm-9">@Model.Reserva!.Cancha!.Nombre (@Model.Reserva!.Cancha!.Tipo)</dd>
+                <dt class="col-sm-4 text-muted">Importe</dt>
+                <dd class="col-sm-8 fw-bold">@Model.Importe.ToString("C")</dd>
 
-            <dt class="col-sm-3">Importe</dt>
-            <dd class="col-sm-9">@Model.Importe.ToString("C")</dd>
+                <dt class="col-sm-4 text-muted">Fecha</dt>
+                <dd class="col-sm-8">@Model.Fecha.ToShortDateString()</dd>
+            </dl>
 
-            <dt class="col-sm-3">Fecha</dt>
-            <dd class="col-sm-9">@Model.Fecha.ToShortDateString()</dd>
-
-            <dt class="col-sm-3">Creado Por</dt>
-            <dd class="col-sm-9">@Model.CreadoPor</dd>
-        </dl>
+            <form asp-action="Delete" method="post" class="mt-4 d-flex justify-content-end gap-2 border-top border-secondary pt-3">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="IdPago" />
+                <a asp-action="Index" class="btn btn-outline-secondary text-white">
+                    <i class="bi bi-arrow-left me-1"></i> Cancelar
+                </a>
+                <button type="submit" class="btn btn-danger">
+                    <i class="bi bi-trash me-1"></i> Confirmar Eliminar
+                </button>
+            </form>
+        </div>
     </div>
 </div>
-
-<form asp-action="Delete" method="post">
-    @Html.AntiForgeryToken()
-    <input type="hidden" asp-for="IdPago" />
-    <div class="d-flex gap-2">
-        <button type="submit" class="btn btn-danger">
-            <i class="bi bi-trash"></i> Eliminar
-        </button>
-        <a asp-action="Index" class="btn btn-secondary">
-            <i class="bi bi-arrow-left"></i> Cancelar
-        </a>
-    </div>
-</form>

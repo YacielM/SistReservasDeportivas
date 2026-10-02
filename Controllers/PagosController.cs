@@ -26,9 +26,8 @@ namespace SistReservasDeportivas.Controllers
                     .Select(r => new
                     {
                         r.IdReserva,
-                        Descripcion = r.Cliente!.Nombre + " " + r.Cliente.Apellido +
-                                      " - " + r.Cancha!.Nombre + " (" + r.Cancha.Tipo + ")" +
-                                      " - " + r.Fecha.ToShortDateString()
+                        Descripcion = "#" + r.IdReserva + " - " + r.Cliente!.Nombre + " " + r.Cliente.Apellido +
+                                      " - " + r.Cancha!.Nombre + " (" + r.Fecha.ToShortDateString() + ")"
                     })
                     .ToList(),
                 "IdReserva", "Descripcion", idReservaSeleccionada
@@ -36,23 +35,81 @@ namespace SistReservasDeportivas.Controllers
         }
 
         // GET: Pagos
-        public async Task<IActionResult> Index(int page = 1, int pageSize = 10)
+        public async Task<IActionResult> Index(string search, string estadoPago, string metodoPago, string sortOrder, int page = 1)
         {
+            int pageSize = 10;
+
             var query = _context.Pagos
                 .Include(p => p.Reserva)
                     .ThenInclude(r => r!.Cliente)
                 .Include(p => p.Reserva)
                     .ThenInclude(r => r!.Cancha)
-                .OrderByDescending(p => p.Fecha);
+                .AsQueryable();
 
-            var totalRegistros = await query.CountAsync();
+            // 1. Buscador por Cliente o Cancha
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                string term = search.Trim().ToLower();
+                query = query.Where(p =>
+                    (p.Reserva != null && p.Reserva.Cliente != null && 
+                     (p.Reserva.Cliente.Nombre + " " + p.Reserva.Cliente.Apellido).ToLower().Contains(term)) ||
+                    (p.Reserva != null && p.Reserva.Cancha != null && 
+                     p.Reserva.Cancha.Nombre.ToLower().Contains(term))
+                );
+            }
+
+            // 2. Filtro por Estado de Pago
+            if (!string.IsNullOrWhiteSpace(estadoPago))
+            {
+                if (estadoPago == "Pendiente")
+                {
+                    // Incluye los que dicen "Pendiente" y también los registros viejos con NULL o vacío
+                    query = query.Where(p => p.EstadoPago == "Pendiente" || string.IsNullOrEmpty(p.EstadoPago));
+                }
+                else
+                {
+                    query = query.Where(p => p.EstadoPago == estadoPago);
+                }
+            }
+
+            // 3. Filtro por Método de Pago
+            if (!string.IsNullOrWhiteSpace(metodoPago))
+            {
+                query = query.Where(p => p.MetodoPago == metodoPago);
+            }
+
+            // 4. Ordenamiento
+            switch (sortOrder)
+            {
+                case "fecha_asc":
+                    query = query.OrderBy(p => p.Fecha);
+                    break;
+                case "importe_desc":
+                    query = query.OrderByDescending(p => p.Importe);
+                    break;
+                case "importe_asc":
+                    query = query.OrderBy(p => p.Importe);
+                    break;
+                case "fecha_desc":
+                default:
+                    query = query.OrderByDescending(p => p.Fecha);
+                    break;
+            }
+
+            int totalRegistros = await query.CountAsync();
+            int totalPages = (int)Math.Ceiling(totalRegistros / (double)pageSize);
+
             var pagos = await query
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
 
-            ViewData["TotalPages"] = (int)Math.Ceiling(totalRegistros / (double)pageSize);
+            ViewData["CurrentSearch"] = search;
+            ViewData["CurrentEstado"] = estadoPago;
+            ViewData["CurrentMetodo"] = metodoPago;
+            ViewData["CurrentSort"] = sortOrder;
             ViewData["CurrentPage"] = page;
+            ViewData["TotalPages"] = totalPages;
 
             return View(pagos);
         }
@@ -74,37 +131,6 @@ namespace SistReservasDeportivas.Controllers
             return View(pago);
         }
 
-        // GET: Pagos/Create
-        public IActionResult Create()
-        {
-            CargarReservas();
-            return View();
-        }
-
-        // POST: Pagos/Create
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("IdPago,IdReserva,Importe,Fecha")] Pago pago)
-        {
-            ModelState.Remove(nameof(Pago.Reserva));
-
-            if (ModelState.IsValid)
-            {
-                var usuarioNombre = HttpContext.Session.GetString("UsuarioNombre");
-                var usuarioApellido = HttpContext.Session.GetString("UsuarioApellido");
-
-                pago.CreadoPor = (usuarioNombre != null && usuarioApellido != null)
-                    ? $"{usuarioNombre} {usuarioApellido}"
-                    : "Sistema";
-
-                _context.Add(pago);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
-            }
-            CargarReservas(pago.IdReserva);
-            return View(pago);
-        }
-
         // GET: Pagos/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
@@ -120,7 +146,7 @@ namespace SistReservasDeportivas.Controllers
         // POST: Pagos/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("IdPago,IdReserva,Importe,Fecha")] Pago pago)
+        public async Task<IActionResult> Edit(int id, [Bind("IdPago,IdReserva,Importe,Fecha,EstadoPago,MetodoPago,CreadoPor")] Pago pago)
         {
             if (id != pago.IdPago) return NotFound();
 
