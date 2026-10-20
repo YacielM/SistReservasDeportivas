@@ -33,7 +33,6 @@
                                    v-on:focus="alEnfocarCliente">
                         </div>
 
-                        <!-- Dropdown de resultados AJAX -->
                         <ul class="list-group position-absolute w-100 shadow-lg mt-1 z-3" 
                             v-if="mostrarResultadosCliente && resultadosClientes.length > 0"
                             style="max-height: 200px; overflow-y: auto;">
@@ -71,7 +70,6 @@
                                    v-on:focus="alEnfocarCancha">
                         </div>
 
-                        <!-- Dropdown de resultados AJAX -->
                         <ul class="list-group position-absolute w-100 shadow-lg mt-1 z-3" 
                             v-if="mostrarResultadosCancha && resultadosCanchas.length > 0"
                             style="max-height: 200px; overflow-y: auto;">
@@ -118,7 +116,13 @@
                     <!-- Monto -->
                     <div class="col-md-4">
                         <label asp-for="Monto" class="form-label fw-semibold">Monto Estimado ($) *</label>
-                        <input asp-for="Monto" type="number" step="0.01" v-model="monto" class="form-control bg-secondary text-white border-0" required />
+                        <input asp-for="Monto" 
+                               type="number" 
+                               step="0.01" 
+                               v-model="monto" 
+                               class="form-control bg-secondary text-white border-0" 
+                               readonly
+                               required />
                         <small class="text-muted d-block mt-1" v-if="canchaSeleccionada">Se recalcula automáticamente al modificar la cancha u horarios.</small>
                         <span asp-validation-for="Monto" class="text-danger small"></span>
                     </div>
@@ -142,34 +146,40 @@
     <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script>
+        if ($.validator) {
+            $.validator.methods.number = function (value, element) {
+                return this.optional(element) || /^-?(?:\d+|\d{1,3}(?:[\s,.]\d{3})+)(?:[\.,]\d+)?$/.test(value);
+            };
+        }
+
         const { createApp } = Vue;
 
         createApp({
             data() {
                 return {
-                    queryCliente: '@Model.Cliente?.Nombre @Model.Cliente?.Apellido (DNI: @Model.Cliente?.Dni)',
+                    queryCliente: @Html.Raw(System.Text.Json.JsonSerializer.Serialize($"{Model.Cliente?.Nombre} {Model.Cliente?.Apellido} (DNI: {Model.Cliente?.Dni})")),
                     resultadosClientes: [],
                     clienteSeleccionado: {
                         idCliente: @Model.IdCliente,
-                        nombre: '@Model.Cliente?.Nombre',
-                        apellido: '@Model.Cliente?.Apellido',
-                        dni: '@Model.Cliente?.Dni'
+                        nombre: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Cliente?.Nombre ?? "")),
+                        apellido: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Cliente?.Apellido ?? "")),
+                        dni: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Cliente?.Dni ?? ""))
                     },
                     mostrarResultadosCliente: false,
 
-                    queryCancha: '@Model.Cancha?.Nombre (@Model.Cancha?.Tipo)',
+                    queryCancha: @Html.Raw(System.Text.Json.JsonSerializer.Serialize($"{Model.Cancha?.Nombre} ({Model.Cancha?.Tipo})")),
                     resultadosCanchas: [],
                     canchaSeleccionada: {
                         idCancha: @Model.IdCancha,
-                        nombre: '@Model.Cancha?.Nombre',
-                        tipo: '@Model.Cancha?.Tipo',
+                        nombre: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Cancha?.Nombre ?? "")),
+                        tipo: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Cancha?.Tipo ?? "")),
                         precioHora: parseFloat('@(Model.Cancha?.PrecioHora.ToString(CultureInfo.InvariantCulture) ?? "0")')
                     },
                     mostrarResultadosCancha: false,
 
                     horaInicio: '@Model.HoraInicio.ToString(@"hh\:mm")',
                     horaFin: '@Model.HoraFin.ToString(@"hh\:mm")',
-                    monto: '@Model.Monto.ToString(CultureInfo.InvariantCulture)'
+                    monto: '@Model.Monto.ToString("0.00", CultureInfo.InvariantCulture)'
                 };
             },
             methods: {

@@ -216,22 +216,23 @@ namespace SistReservasDeportivas.Controllers
             ModelState.Remove(nameof(Reserva.Cliente));
             ModelState.Remove(nameof(Reserva.Cancha));
 
+            // 1. Validar duración mínima
             if (reserva.HoraFin <= reserva.HoraInicio.Add(TimeSpan.FromHours(1)))
             {
                 ModelState.AddModelError("HoraFin", "La reserva debe tener al menos 1 hora de duración.");
             }
 
+            // 2. Validar horarios solapados
             var solapada = await _context.Reservas
                 .Where(r => r.IdCancha == reserva.IdCancha && r.Fecha.Date == reserva.Fecha.Date && r.IdReserva != reserva.IdReserva)
-                .AnyAsync(r =>
-                    (reserva.HoraInicio < r.HoraFin) && (reserva.HoraFin > r.HoraInicio)
-                );
+                .AnyAsync(r => (reserva.HoraInicio < r.HoraFin) && (reserva.HoraFin > r.HoraInicio));
 
             if (solapada)
             {
                 ModelState.AddModelError("", "Ya existe una reserva en ese horario para la misma cancha.");
             }
 
+            // 3. Recalcular Monto según el precio por hora de la cancha
             var cancha = await _context.Canchas.FindAsync(reserva.IdCancha);
             if (cancha != null)
             {
@@ -241,19 +242,22 @@ namespace SistReservasDeportivas.Controllers
                     reserva.Monto = cancha.PrecioHora * (decimal)horas;
                 }
             }
-            // Dentro de Edit POST, antes o después de _context.Update(reserva):
-            var pago = await _context.Pagos.FirstOrDefaultAsync(p => p.IdReserva == reserva.IdReserva);
-            if (pago != null && pago.EstadoPago == "Pendiente")
-            {
-                pago.Importe = reserva.Monto;
-                _context.Update(pago);
-            }
 
+            // 4. Si los datos son válidos, guardar reserva y actualizar el pago en estado "Pendiente"
             if (ModelState.IsValid)
             {
                 try
                 {
                     _context.Update(reserva);
+
+                    // Sincronizar el importe del pago asociado si aún no fue abonado
+                    var pago = await _context.Pagos.FirstOrDefaultAsync(p => p.IdReserva == reserva.IdReserva);
+                    if (pago != null && pago.EstadoPago == "Pendiente")
+                    {
+                        pago.Importe = reserva.Monto;
+                        _context.Update(pago);
+                    }
+
                     await _context.SaveChangesAsync();
                 }
                 catch (DbUpdateConcurrencyException)
@@ -266,6 +270,7 @@ namespace SistReservasDeportivas.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
+            // Si hubo errores de validación, recargar los desplegables y volver a la vista
             CargarCombos(reserva.IdCliente, reserva.IdCancha);
             return View(reserva);
         }
