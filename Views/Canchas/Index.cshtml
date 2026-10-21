@@ -1,65 +1,83 @@
 @model IEnumerable<SistReservasDeportivas.Models.Cancha>
 
-<h2 class="mb-3">Canchas</h2>
+@{
+    ViewData["Title"] = "Canchas";
+}
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <a asp-action="Create" class="btn btn-success">
-        <i class="bi bi-plus-circle"></i> Nueva Cancha
-    </a>
-</div>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
-<div class="row row-cols-1 row-cols-md-3 g-4">
-    @foreach (var cancha in Model)
-    {
-        <div class="col">
-            <div class="card h-100 shadow-sm">
-                @if (!string.IsNullOrEmpty(cancha.Foto))
-                {
-                    <img src="~/canchas/@cancha.Foto" class="card-img-top" style="object-fit: cover; aspect-ratio: 1/1;" />
-                }
-                else
-                {
-                    <div class="bg-light d-flex align-items-center justify-content-center" style="aspect-ratio: 1/1;">
-                        <span class="text-muted">Sin foto</span>
-                    </div>
-                }
-                <div class="card-body">
-                    <h5 class="card-title">@cancha.Nombre</h5>
-                    <p class="card-text">
-                        Tipo: @cancha.Tipo <br />
-                        Precio por hora: @cancha.PrecioHora.ToString("C") <br />
-                        Estado:
-                        @if (cancha.Estado == "Disponible")
+<div class="container my-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-white fw-bold mb-0">
+            <i class="bi bi-trophy text-info me-2"></i>Gestión de Canchas
+        </h2>
+        @if (User.IsInRole("Administrador"))
+        {
+            <a asp-action="Create" class="btn btn-success fw-semibold">
+                <i class="bi bi-plus-circle me-1"></i> Nueva Cancha
+            </a>
+        }
+    </div>
+
+    <div class="row row-cols-1 row-cols-md-3 g-4">
+        @foreach (var cancha in Model)
+        {
+            <div class="col">
+                <div class="card bg-dark text-white border-secondary shadow h-100">
+                    <!-- Imagen de Cancha / Placeholder Oscuro -->
+                    <div style="height: 200px; overflow: hidden;" class="bg-secondary bg-opacity-25 d-flex align-items-center justify-content-center rounded-top">
+                        @if (!string.IsNullOrEmpty(cancha.Foto))
                         {
-                            <span class="badge bg-success">Disponible</span>
-                        }
-                        else if (cancha.Estado == "Ocupada")
-                        {
-                            <span class="badge bg-danger">Ocupada</span>
+                            <img src="~/canchas/@cancha.Foto" class="w-100 h-100" style="object-fit: cover;" alt="@cancha.Nombre" />
                         }
                         else
                         {
-                            <span class="badge bg-secondary">@cancha.Estado</span>
+                            <div class="text-center text-muted">
+                                <i class="bi bi-image fs-1 d-block mb-1"></i>
+                                <span class="small fw-semibold">Sin imagen disponible</span>
+                            </div>
                         }
-                    </p>
-                    <div class="d-flex gap-2">
-                        <a asp-action="Details" asp-route-id="@cancha.IdCancha" class="btn btn-info btn-sm">
-                            <i class="bi bi-eye"></i> Detalles
+                    </div>
+
+                    <div class="card-body">
+                        <h5 class="card-title fw-bold text-info mb-1">@cancha.Nombre</h5>
+                        <p class="card-text text-muted small mb-2"><i class="bi bi-tag me-1"></i>@cancha.Tipo</p>
+                        
+                        <div class="d-flex justify-content-between align-items-center my-3">
+                            <span class="fs-5 fw-bold text-success">@cancha.PrecioHora.ToString("C") <small class="fs-6 text-muted fw-normal">/hs</small></span>
+                            @if (cancha.Estado == "Disponible")
+                            {
+                                <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Disponible</span>
+                            }
+                            else if (cancha.Estado == "Mantenimiento")
+                            {
+                                <span class="badge bg-warning text-dark"><i class="bi bi-tools me-1"></i>Mantenimiento</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">@cancha.Estado</span>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="card-footer bg-dark border-secondary d-flex justify-content-between">
+                        <a asp-action="Details" asp-route-id="@cancha.IdCancha" class="btn btn-sm btn-info text-white">
+                            <i class="bi bi-eye me-1"></i> Detalles
                         </a>
-                        <a asp-action="Edit" asp-route-id="@cancha.IdCancha" class="btn btn-warning btn-sm">
-                            <i class="bi bi-pencil-square"></i> Editar
-                        </a>
-                        <a asp-action="Delete" asp-route-id="@cancha.IdCancha" class="btn btn-danger btn-sm">
-                            <i class="bi bi-trash"></i> Eliminar
-                        </a>
+                        @if (User.IsInRole("Administrador"))
+                        {
+                            <div class="btn-group btn-group-sm">
+                                <a asp-action="Edit" asp-route-id="@cancha.IdCancha" class="btn btn-warning">
+                                    <i class="bi bi-pencil-square"></i>
+                                </a>
+                                <a asp-action="Delete" asp-route-id="@cancha.IdCancha" class="btn btn-danger">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            </div>
+                        }
                     </div>
                 </div>
             </div>
-        </div>
-    }
+        }
+    </div>
 </div>
-
-@if (!Model.Any())
-{
-    <div class="alert alert-info mt-3">No hay canchas cargadas aún.</div>
-}

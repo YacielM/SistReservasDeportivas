@@ -1,38 +1,44 @@
 @model SistReservasDeportivas.Models.Cancha
 
-<h2 class="mb-3 text-danger">Eliminar Cancha</h2>
+@{
+    ViewData["Title"] = "Eliminar Cancha";
+}
 
-<div class="alert alert-warning">
-    <strong>¿Seguro que deseas eliminar esta cancha?</strong>
-    Esta acción no se puede deshacer.
-</div>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
-<div class="card shadow-sm mb-3">
-    <div class="card-body">
-        <dl class="row">
-            <dt class="col-sm-3">Nombre</dt>
-            <dd class="col-sm-9">@Model.Nombre</dd>
+<div class="container my-4">
+    <div class="card bg-dark text-white border-danger shadow">
+        <div class="card-header bg-danger text-white py-3">
+            <h4 class="fw-bold mb-0">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>Confirmar Eliminación de Cancha
+            </h4>
+        </div>
+        <div class="card-body p-4">
+            <p class="fs-5 mb-4">¿Estás seguro de que deseas eliminar la cancha <strong class="text-info">@Model.Nombre</strong>? Esta acción no se puede deshacer.</p>
 
-            <dt class="col-sm-3">Tipo</dt>
-            <dd class="col-sm-9">@Model.Tipo</dd>
+            <dl class="row fs-5">
+                <dt class="col-sm-3 text-info">Tipo:</dt>
+                <dd class="col-sm-9">@Model.Tipo</dd>
 
-            <dt class="col-sm-3">Precio por hora</dt>
-            <dd class="col-sm-9">@Model.PrecioHora.ToString("C")</dd>
+                <dt class="col-sm-3 text-info">Precio / Hora:</dt>
+                <dd class="col-sm-9 text-success fw-bold">@Model.PrecioHora.ToString("C")</dd>
 
-            <dt class="col-sm-3">Estado</dt>
-            <dd class="col-sm-9">@Model.Estado</dd>
-        </dl>
+                <dt class="col-sm-3 text-info">Estado:</dt>
+                <dd class="col-sm-9">@Model.Estado</dd>
+            </dl>
+
+            <form asp-action="Delete" method="post" class="mt-4">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="IdCancha" />
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-danger fw-bold">
+                        <i class="bi bi-trash me-1"></i> Confirmar y Eliminar
+                    </button>
+                    <a asp-action="Index" class="btn btn-outline-light">
+                        <i class="bi bi-arrow-left me-1"></i> Cancelar
+                    </a>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
-
-<form asp-action="Delete">
-    <input type="hidden" asp-for="IdCancha" />
-    <div class="d-flex gap-2">
-        <button type="submit" class="btn btn-danger">
-            <i class="bi bi-trash"></i> Eliminar
-        </button>
-        <a asp-action="Index" class="btn btn-secondary">
-            <i class="bi bi-arrow-left"></i> Cancelar
-        </a>
-    </div>
-</form>

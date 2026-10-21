@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace SistReservasDeportivas.Models
 {
@@ -14,6 +15,7 @@ namespace SistReservasDeportivas.Models
         public string Tipo { get; set; } = string.Empty; // Fútbol 5, Tenis, etc.
 
         [Required]
+        [Column(TypeName = "decimal(18,2)")]
         public decimal PrecioHora { get; set; }
 
         public string Estado { get; set; } = "Disponible";
