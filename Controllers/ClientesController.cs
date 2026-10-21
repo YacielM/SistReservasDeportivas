@@ -1,8 +1,8 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SistReservasDeportivas.Data;
 using SistReservasDeportivas.Models;
-using Microsoft.AspNetCore.Authorization;
 
 namespace SistReservasDeportivas.Controllers
 {
@@ -19,7 +19,12 @@ namespace SistReservasDeportivas.Controllers
         // GET: Clientes
         public async Task<IActionResult> Index()
         {
-            return View(await _context.Clientes.ToListAsync());
+            var clientes = await _context.Clientes
+                .Include(c => c.Reservas)
+                    .ThenInclude(r => r.Pagos)
+                .ToListAsync();
+
+            return View(clientes);
         }
 
         // GET: Clientes/Details/5
@@ -28,7 +33,10 @@ namespace SistReservasDeportivas.Controllers
             if (id == null) return NotFound();
 
             var cliente = await _context.Clientes
+                .Include(c => c.Reservas)
+                    .ThenInclude(r => r.Pagos)
                 .FirstOrDefaultAsync(m => m.IdCliente == id);
+
             if (cliente == null) return NotFound();
 
             return View(cliente);
@@ -51,15 +59,6 @@ namespace SistReservasDeportivas.Controllers
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            else
-            {
-                var errores = ModelState.Values.SelectMany(v => v.Errors);
-                foreach (var error in errores)
-                {
-                    Console.WriteLine($"Error de validación: {error.ErrorMessage}");
-                }
-            }
-
             return View(cliente);
         }
 
@@ -101,12 +100,14 @@ namespace SistReservasDeportivas.Controllers
         }
 
         // GET: Clientes/Delete/5
+        [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null) return NotFound();
 
             var cliente = await _context.Clientes
                 .FirstOrDefaultAsync(m => m.IdCliente == id);
+
             if (cliente == null) return NotFound();
 
             return View(cliente);

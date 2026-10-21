@@ -1,9 +1,9 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using SistReservasDeportivas.Data;
 using SistReservasDeportivas.Models;
-using Microsoft.AspNetCore.Authorization;
 
 namespace SistReservasDeportivas.Controllers
 {
@@ -17,6 +17,12 @@ namespace SistReservasDeportivas.Controllers
             _context = context;
         }
 
+        private void CargarCombos(int? idCliente = null, int? idCancha = null)
+        {
+            ViewData["IdCliente"] = new SelectList(_context.Clientes, "IdCliente", "Nombre", idCliente);
+            ViewData["IdCancha"] = new SelectList(_context.Canchas, "IdCancha", "Nombre", idCancha);
+        }
+
         // GET: Reservas
         public async Task<IActionResult> Index(string search, string estado, string sortOrder, int page = 1)
         {
@@ -26,23 +32,37 @@ namespace SistReservasDeportivas.Controllers
                 .Include(r => r.Cancha)
                 .AsQueryable();
 
-            // 1. Buscador por Nombre/Apellido de Cliente o Nombre de Cancha
+            // 1. Buscador
             if (!string.IsNullOrWhiteSpace(search))
             {
-                string queryLower = search.Trim().ToLower();
-                query = query.Where(r => 
-                    (r.Cliente != null && (r.Cliente.Nombre + " " + r.Cliente.Apellido).ToLower().Contains(queryLower)) ||
-                    (r.Cancha != null && r.Cancha.Nombre.ToLower().Contains(queryLower)));
+                string term = search.Trim().ToLower();
+                query = query.Where(r =>
+                    (r.Cliente != null && (r.Cliente.Nombre + " " + r.Cliente.Apellido).ToLower().Contains(term)) ||
+                    (r.Cancha != null && r.Cancha.Nombre.ToLower().Contains(term))
+                );
             }
 
-            // 2. Filtro por Estado (Activas / Canceladas)
-            if (estado == "activas")
+            // 2. Filtro Estado traducible a SQL
+            if (!string.IsNullOrWhiteSpace(estado))
             {
-                query = query.Where(r => !r.Cancelada);
-            }
-            else if (estado == "canceladas")
-            {
-                query = query.Where(r => r.Cancelada);
+                var ahora = DateTime.Now;
+                var fechaHoy = ahora.Date;
+                var horaActual = ahora.TimeOfDay;
+
+                if (estado == "Cancelada")
+                {
+                    query = query.Where(r => r.Cancelada);
+                }
+                else if (estado == "Activa")
+                {
+                    query = query.Where(r => !r.Cancelada && 
+                        (r.Fecha > fechaHoy || (r.Fecha == fechaHoy && r.HoraFin >= horaActual)));
+                }
+                else if (estado == "Finalizada")
+                {
+                    query = query.Where(r => !r.Cancelada && 
+                        (r.Fecha < fechaHoy || (r.Fecha == fechaHoy && r.HoraFin < horaActual)));
+                }
             }
 
             // 3. Ordenamiento
@@ -51,23 +71,14 @@ namespace SistReservasDeportivas.Controllers
                 case "fecha_asc":
                     query = query.OrderBy(r => r.Fecha).ThenBy(r => r.HoraInicio);
                     break;
-                case "monto_desc":
-                    query = query.OrderByDescending(r => r.Monto);
-                    break;
-                case "monto_asc":
-                    query = query.OrderBy(r => r.Monto);
-                    break;
-                case "cliente":
-                    query = query.OrderBy(r => r.Cliente.Apellido).ThenBy(r => r.Cliente.Nombre);
-                    break;
                 case "fecha_desc":
                 default:
                     query = query.OrderByDescending(r => r.Fecha).ThenByDescending(r => r.HoraInicio);
                     break;
             }
 
-            int totalItems = await query.CountAsync();
-            int totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+            int totalRegistros = await query.CountAsync();
+            int totalPages = (int)Math.Ceiling(totalRegistros / (double)pageSize);
 
             var reservas = await query
                 .Skip((page - 1) * pageSize)
@@ -98,27 +109,6 @@ namespace SistReservasDeportivas.Controllers
             return View(reserva);
         }
 
-        private void CargarCombos(int? idClienteSeleccionado = null, int? idCanchaSeleccionada = null)
-        {
-            // Si hay un ID seleccionado (ej. en Edit o al volver por error de validación), 
-            // solo cargamos ESE elemento específico en el SelectList.
-            if (idClienteSeleccionado.HasValue)
-            {
-                ViewData["IdCliente"] = new SelectList(
-                    _context.Clientes.Where(c => c.IdCliente == idClienteSeleccionado)
-                        .Select(c => new { c.IdCliente, NombreCompleto = c.Nombre + " " + c.Apellido + " (DNI: " + c.Dni + ")" }),
-                    "IdCliente", "NombreCompleto", idClienteSeleccionado);
-            }
-
-            if (idCanchaSeleccionada.HasValue)
-            {
-                ViewData["IdCancha"] = new SelectList(
-                    _context.Canchas.Where(c => c.IdCancha == idCanchaSeleccionada)
-                        .Select(c => new { c.IdCancha, NombreTipo = c.Nombre + " (" + c.Tipo + ")" }),
-                    "IdCancha", "NombreTipo", idCanchaSeleccionada);
-            }
-        }
-
         // GET: Reservas/Create
         public IActionResult Create()
         {
@@ -134,22 +124,34 @@ namespace SistReservasDeportivas.Controllers
             ModelState.Remove(nameof(Reserva.Cliente));
             ModelState.Remove(nameof(Reserva.Cancha));
 
+            // 1. Validar bloqueo por Saldo Deudor
+            var cliente = await _context.Clientes
+                .Include(c => c.Reservas)
+                    .ThenInclude(r => r.Pagos)
+                .FirstOrDefaultAsync(c => c.IdCliente == reserva.IdCliente);
+
+            if (cliente != null && cliente.SaldoDeudor > 0)
+            {
+                ModelState.AddModelError("", $"El cliente {cliente.Nombre} {cliente.Apellido} registra una deuda de {cliente.SaldoDeudor:C} por turnos vencidos no abonados. Debe regularizar su situación antes de registrar un nuevo turno.");
+            }
+
+            // 2. Validar duración mínima
             if (reserva.HoraFin <= reserva.HoraInicio.Add(TimeSpan.FromHours(1)))
             {
                 ModelState.AddModelError("HoraFin", "La reserva debe tener al menos 1 hora de duración.");
             }
 
+            // 3. Validar horarios solapados
             var solapada = await _context.Reservas
-                .Where(r => r.IdCancha == reserva.IdCancha && r.Fecha.Date == reserva.Fecha.Date)
-                .AnyAsync(r =>
-                    (reserva.HoraInicio < r.HoraFin) && (reserva.HoraFin > r.HoraInicio)
-                );
+                .Where(r => r.IdCancha == reserva.IdCancha && r.Fecha.Date == reserva.Fecha.Date && !r.Cancelada)
+                .AnyAsync(r => (reserva.HoraInicio < r.HoraFin) && (reserva.HoraFin > r.HoraInicio));
 
             if (solapada)
             {
                 ModelState.AddModelError("", "Ya existe una reserva en ese horario para la misma cancha.");
             }
 
+            // 4. Calcular Monto
             var cancha = await _context.Canchas.FindAsync(reserva.IdCancha);
             if (cancha != null)
             {
@@ -173,8 +175,8 @@ namespace SistReservasDeportivas.Controllers
                     IdReserva = reserva.IdReserva,
                     Importe = reserva.Monto,
                     Fecha = DateTime.Now,
-                    EstadoPago = "Pendiente", // <-- Acompaña la adición de EstadoPago
-                    MetodoPago = null,        // <-- Queda nulo hasta que el cliente efectúe el pago
+                    EstadoPago = "Pendiente",
+                    MetodoPago = null,
                     CreadoPor = (usuarioNombre != null && usuarioApellido != null)
                         ? $"{usuarioNombre} {usuarioApellido}"
                         : "Sistema"
@@ -216,15 +218,13 @@ namespace SistReservasDeportivas.Controllers
             ModelState.Remove(nameof(Reserva.Cliente));
             ModelState.Remove(nameof(Reserva.Cancha));
 
-            // 1. Validar duración mínima
             if (reserva.HoraFin <= reserva.HoraInicio.Add(TimeSpan.FromHours(1)))
             {
                 ModelState.AddModelError("HoraFin", "La reserva debe tener al menos 1 hora de duración.");
             }
 
-            // 2. Validar horarios solapados
             var solapada = await _context.Reservas
-                .Where(r => r.IdCancha == reserva.IdCancha && r.Fecha.Date == reserva.Fecha.Date && r.IdReserva != reserva.IdReserva)
+                .Where(r => r.IdCancha == reserva.IdCancha && r.Fecha.Date == reserva.Fecha.Date && r.IdReserva != reserva.IdReserva && !r.Cancelada)
                 .AnyAsync(r => (reserva.HoraInicio < r.HoraFin) && (reserva.HoraFin > r.HoraInicio));
 
             if (solapada)
@@ -232,7 +232,6 @@ namespace SistReservasDeportivas.Controllers
                 ModelState.AddModelError("", "Ya existe una reserva en ese horario para la misma cancha.");
             }
 
-            // 3. Recalcular Monto según el precio por hora de la cancha
             var cancha = await _context.Canchas.FindAsync(reserva.IdCancha);
             if (cancha != null)
             {
@@ -243,14 +242,13 @@ namespace SistReservasDeportivas.Controllers
                 }
             }
 
-            // 4. Si los datos son válidos, guardar reserva y actualizar el pago en estado "Pendiente"
             if (ModelState.IsValid)
             {
                 try
                 {
                     _context.Update(reserva);
 
-                    // Sincronizar el importe del pago asociado si aún no fue abonado
+                    // Sincronizar el importe del pago si aún está en estado Pendiente
                     var pago = await _context.Pagos.FirstOrDefaultAsync(p => p.IdReserva == reserva.IdReserva);
                     if (pago != null && pago.EstadoPago == "Pendiente")
                     {
@@ -270,9 +268,31 @@ namespace SistReservasDeportivas.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            // Si hubo errores de validación, recargar los desplegables y volver a la vista
             CargarCombos(reserva.IdCliente, reserva.IdCancha);
             return View(reserva);
+        }
+
+        // POST: Reservas/Cancelar/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Cancelar(int id)
+        {
+            var reserva = await _context.Reservas.FindAsync(id);
+            if (reserva != null)
+            {
+                reserva.Cancelada = true;
+                _context.Update(reserva);
+
+                var pago = await _context.Pagos.FirstOrDefaultAsync(p => p.IdReserva == id);
+                if (pago != null)
+                {
+                    pago.EstadoPago = "Anulado";
+                    _context.Update(pago);
+                }
+
+                await _context.SaveChangesAsync();
+            }
+            return RedirectToAction(nameof(Index));
         }
 
         // GET: Reservas/Delete/5
@@ -303,37 +323,6 @@ namespace SistReservasDeportivas.Controllers
                 _context.Reservas.Remove(reserva);
                 await _context.SaveChangesAsync();
             }
-            return RedirectToAction(nameof(Index));
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Cancelar(int id)
-        {
-            var reserva = await _context.Reservas
-                .Include(r => r.Cancha)
-                .FirstOrDefaultAsync(r => r.IdReserva == id);
-
-            if (reserva == null) return NotFound();
-
-            reserva.Cancelada = true;
-
-            if (reserva.Cancha != null && reserva.Cancha.Estado == "Ocupada")
-            {
-                reserva.Cancha.Estado = "Disponible";
-            }
-
-            // Actualizar el estado del pago si existe
-            var pago = await _context.Pagos.FirstOrDefaultAsync(p => p.IdReserva == reserva.IdReserva);
-            if (pago != null)
-            {
-                pago.EstadoPago = "Cancelado";
-                _context.Update(pago);
-            }
-
-            _context.Update(reserva);
-            await _context.SaveChangesAsync();
-
             return RedirectToAction(nameof(Index));
         }
     }

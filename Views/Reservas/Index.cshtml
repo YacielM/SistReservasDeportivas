@@ -28,17 +28,17 @@
                 <div class="col-md-3">
                     <select name="estado" class="form-select form-select-sm bg-secondary text-white border-0">
                         <option value="">-- Todos los Estados --</option>
-                        <option value="Activa" selected="@((string)ViewData["CurrentEstado"] == "Activa")">Activa</option>
-                        <option value="Finalizada" selected="@((string)ViewData["CurrentEstado"] == "Finalizada")">Finalizada</option>
-                        <option value="Cancelada" selected="@((string)ViewData["CurrentEstado"] == "Cancelada")">Cancelada</option>
+                        <option value="Activa" selected="@(ViewData["CurrentEstado"]?.ToString() == "Activa")">Activa</option>
+                        <option value="Finalizada" selected="@(ViewData["CurrentEstado"]?.ToString() == "Finalizada")">Finalizada</option>
+                        <option value="Cancelada" selected="@(ViewData["CurrentEstado"]?.ToString() == "Cancelada")">Cancelada</option>
                     </select>
                 </div>
 
                 <!-- Orden -->
                 <div class="col-md-3">
                     <select name="sortOrder" class="form-select form-select-sm bg-secondary text-white border-0">
-                        <option value="fecha_desc" selected="@((string)ViewData["CurrentSort"] == "fecha_desc" || string.IsNullOrEmpty((string)ViewData["CurrentSort"]))">Fecha (Más recientes)</option>
-                        <option value="fecha_asc" selected="@((string)ViewData["CurrentSort"] == "fecha_asc")">Fecha (Más antiguas)</option>
+                        <option value="fecha_desc" selected="@(ViewData["CurrentSort"]?.ToString() == "fecha_desc" || string.IsNullOrEmpty(ViewData["CurrentSort"]?.ToString()))">Fecha (Más recientes)</option>
+                        <option value="fecha_asc" selected="@(ViewData["CurrentSort"]?.ToString() == "fecha_asc")">Fecha (Más antiguas)</option>
                     </select>
                 </div>
 
@@ -136,9 +136,9 @@
                 @{
                     int totalPages = (ViewData["TotalPages"] as int?) ?? 0;
                     int currentPage = (ViewData["CurrentPage"] as int?) ?? 1;
-                    string search = (string)ViewData["CurrentSearch"];
-                    string estado = (string)ViewData["CurrentEstado"];
-                    string sort = (string)ViewData["CurrentSort"];
+                    string? search = ViewData["CurrentSearch"] as string;
+                    string? estado = ViewData["CurrentEstado"] as string;
+                    string? sort = ViewData["CurrentSort"] as string;
                 }
 
                 <li class="page-item @(currentPage <= 1 ? "disabled" : "")">

@@ -22,18 +22,47 @@ namespace SistReservasDeportivas.Controllers.Api
 
         // GET: api/ClientesApi
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Cliente>>> GetClientes()
+        public async Task<ActionResult<IEnumerable<object>>> GetClientes()
         {
-            return await _context.Clientes.ToListAsync();
+            var clientes = await _context.Clientes
+                .Include(c => c.Reservas)
+                    .ThenInclude(r => r.Pagos)
+                .Select(c => new {
+                    c.IdCliente,
+                    c.Dni,
+                    c.Nombre,
+                    c.Apellido,
+                    c.FechaNacimiento,
+                    c.Telefono,
+                    c.Email,
+                    saldoDeudor = c.SaldoDeudor
+                })
+                .ToListAsync();
+
+            return Ok(clientes);
         }
 
         // GET: api/ClientesApi/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Cliente>> GetCliente(int id)
+        public async Task<ActionResult<object>> GetCliente(int id)
         {
-            var cliente = await _context.Clientes.FindAsync(id);
+            var cliente = await _context.Clientes
+                .Include(c => c.Reservas)
+                    .ThenInclude(r => r.Pagos)
+                .FirstOrDefaultAsync(c => c.IdCliente == id);
+
             if (cliente == null) return NotFound();
-            return cliente;
+
+            return new {
+                cliente.IdCliente,
+                cliente.Dni,
+                cliente.Nombre,
+                cliente.Apellido,
+                cliente.FechaNacimiento,
+                cliente.Telefono,
+                cliente.Email,
+                saldoDeudor = cliente.SaldoDeudor
+            };
         }
 
         // POST: api/ClientesApi
@@ -73,6 +102,8 @@ namespace SistReservasDeportivas.Controllers.Api
         {
             q ??= "";
             var clientes = await _context.Clientes
+                .Include(c => c.Reservas)
+                    .ThenInclude(r => r.Pagos)
                 .Where(c => string.IsNullOrEmpty(q) || 
                             c.Dni.Contains(q) || 
                             c.Nombre.Contains(q) || 
@@ -82,7 +113,8 @@ namespace SistReservasDeportivas.Controllers.Api
                     idCliente = c.IdCliente,
                     dni = c.Dni,
                     nombre = c.Nombre,
-                    apellido = c.Apellido
+                    apellido = c.Apellido,
+                    saldoDeudor = c.SaldoDeudor
                 })
                 .Take(10)
                 .ToListAsync();

@@ -2,56 +2,59 @@
     ViewData["Title"] = "Clientes";
 }
 
-<!-- Carga de Bootstrap Icons -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
 <div id="app" class="container my-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="fw-bold text-white mb-0">
-            <i class="bi bi-people-fill me-2 text-info"></i>Gestión de Clientes
+        <h2 class="text-white fw-bold mb-0">
+            <i class="bi bi-people-fill text-info me-2"></i>Gestión de Clientes
         </h2>
-        <button class="btn btn-success" v-on:click="abrirModalCrear">
+        <button class="btn btn-success" v-on:click="abrirModalNuevo">
             <i class="bi bi-person-plus-fill me-1"></i> Nuevo Cliente
         </button>
     </div>
 
-    <!-- Tabla de Clientes -->
-    <div class="card bg-dark text-white shadow border-secondary">
+    <!-- Tabla -->
+    <div class="card bg-dark text-white border-secondary shadow">
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-dark table-hover align-middle mb-0">
-                    <thead>
+                    <thead class="border-bottom border-secondary text-info">
                         <tr>
-                            <th class="text-info">DNI</th>
-                            <th class="text-info">Nombre</th>
-                            <th class="text-info">Apellido</th>
-                            <th class="text-info">Email</th>
-                            <th class="text-end pe-4 text-info" style="width: 160px;">Acciones</th>
+                            <th>DNI</th>
+                            <th>Nombre</th>
+                            <th>Apellido</th>
+                            <th>Email</th>
+                            <th class="text-center">Estado / Deuda</th>
+                            <th class="text-center" style="width: 160px;">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr v-if="cargando">
-                            <td colspan="5" class="text-center py-4 text-muted">
-                                <div class="spinner-border spinner-border-sm text-info me-2" role="status"></div>
-                                Cargando clientes...
-                            </td>
+                            <td colspan="6" class="text-center py-4 text-muted">Cargando clientes...</td>
                         </tr>
                         <tr v-else-if="clientes.length === 0">
-                            <td colspan="5" class="text-center py-4 text-muted">
-                                No hay clientes registrados.
-                            </td>
+                            <td colspan="6" class="text-center py-4 text-muted">No hay clientes registrados.</td>
                         </tr>
                         <tr v-for="c in clientes" :key="c.idCliente">
                             <td class="fw-semibold">{{ c.dni }}</td>
                             <td>{{ c.nombre }}</td>
                             <td>{{ c.apellido }}</td>
                             <td>{{ c.email || '-' }}</td>
-                            <td class="text-end pe-4">
+                            <td class="text-center">
+                                <span v-if="c.saldoDeudor > 0" class="badge bg-danger">
+                                    <i class="bi bi-exclamation-triangle-fill me-1"></i>Deuda: ${{ c.saldoDeudor.toLocaleString('es-AR', { minimumFractionDigits: 2 }) }}
+                                </span>
+                                <span v-else class="badge bg-success">
+                                    <i class="bi bi-check-circle-fill me-1"></i>Al día
+                                </span>
+                            </td>
+                            <td class="text-center">
                                 <div class="btn-group btn-group-sm">
-                                    <button v-on:click="abrirModalEditar(c)" class="btn btn-warning" title="Editar">
+                                    <button class="btn btn-warning" v-on:click="abrirModalEditar(c)" title="Editar">
                                         <i class="bi bi-pencil-square"></i>
                                     </button>
-                                    <button v-on:click="eliminarCliente(c.idCliente)" class="btn btn-danger" title="Eliminar">
+                                    <button class="btn btn-danger" v-on:click="eliminarCliente(c.idCliente)" title="Eliminar">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </div>
@@ -63,43 +66,51 @@
         </div>
     </div>
 
-    <!-- Modal para Crear / Editar -->
-    <div class="modal fade" id="clienteModal" tabindex="-1" aria-hidden="true">
+    <!-- Modal Formulario -->
+    <div class="modal fade" id="modalCliente" tabindex="-1" aria-hidden="true" ref="modalCliente">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content bg-dark text-white border-secondary">
                 <div class="modal-header border-secondary">
                     <h5 class="modal-title fw-bold">
                         {{ modoEdicion ? 'Editar Cliente' : 'Nuevo Cliente' }}
                     </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
-                    <form v-on:submit.prevent="guardarCliente">
+                <form v-on:submit.prevent="guardarCliente">
+                    <div class="modal-body">
                         <div class="mb-3">
-                            <label class="form-label fw-semibold">DNI *</label>
-                            <input v-model="form.dni" type="text" class="form-control bg-secondary text-white border-0" required placeholder="Ej: 40123456" />
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Nombre *</label>
-                            <input v-model="form.nombre" type="text" class="form-control bg-secondary text-white border-0" required placeholder="Ej: Juan" />
+                            <label class="form-label text-info fw-semibold">DNI *</label>
+                            <input type="text" class="form-control bg-secondary text-white border-0" v-model="form.dni" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label fw-semibold">Apellido *</label>
-                            <input v-model="form.apellido" type="text" class="form-control bg-secondary text-white border-0" required placeholder="Ej: Pérez" />
+                            <label class="form-label text-info fw-semibold">Nombre *</label>
+                            <input type="text" class="form-control bg-secondary text-white border-0" v-model="form.nombre" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label fw-semibold">Email</label>
-                            <input v-model="form.email" type="email" class="form-control bg-secondary text-white border-0" placeholder="juan@ejemplo.com" />
+                            <label class="form-label text-info fw-semibold">Apellido *</label>
+                            <input type="text" class="form-control bg-secondary text-white border-0" v-model="form.apellido" required>
                         </div>
-                        <div class="d-flex justify-content-end gap-2 pt-2">
-                            <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancelar</button>
-                            <button type="submit" class="btn btn-primary" :disabled="guardando">
-                                <span v-if="guardando" class="spinner-border spinner-border-sm me-1"></span>
-                                {{ modoEdicion ? 'Actualizar' : 'Guardar' }}
-                            </button>
+                        <div class="mb-3">
+                            <label class="form-label text-info fw-semibold">Fecha Nacimiento *</label>
+                            <input type="date" class="form-control bg-secondary text-white border-0" v-model="form.fechaNacimiento" required>
                         </div>
-                    </form>
-                </div>
+                        <div class="mb-3">
+                            <label class="form-label text-info fw-semibold">Teléfono</label>
+                            <input type="text" class="form-control bg-secondary text-white border-0" v-model="form.telefono">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-info fw-semibold">Email</label>
+                            <input type="email" class="form-control bg-secondary text-white border-0" v-model="form.email">
+                        </div>
+                    </div>
+                    <div class="modal-footer border-secondary">
+                        <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-success" :disabled="guardando">
+                            <span v-if="guardando" class="spinner-border spinner-border-sm me-1"></span>
+                            {{ modoEdicion ? 'Guardar Cambios' : 'Crear Cliente' }}
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -115,16 +126,24 @@
             data() {
                 return {
                     clientes: [],
-                    cargando: false,
+                    cargando: true,
                     guardando: false,
                     modoEdicion: false,
-                    form: { idCliente: 0, dni: '', nombre: '', apellido: '', email: '' },
-                    bsModal: null
-                };
+                    modalInstance: null,
+                    form: {
+                        idCliente: 0,
+                        dni: '',
+                        nombre: '',
+                        apellido: '',
+                        fechaNacimiento: '',
+                        telefono: '',
+                        email: ''
+                    }
+                }
             },
             mounted() {
                 this.cargarClientes();
-                this.bsModal = new bootstrap.Modal(document.getElementById('clienteModal'));
+                this.modalInstance = new bootstrap.Modal(this.$refs.modalCliente);
             },
             methods: {
                 async cargarClientes() {
@@ -133,20 +152,28 @@
                         const res = await axios.get('/api/ClientesApi');
                         this.clientes = res.data;
                     } catch (err) {
-                        alert('Error al cargar la lista de clientes.');
+                        console.error("Error cargando clientes:", err);
                     } finally {
                         this.cargando = false;
                     }
                 },
-                abrirModalCrear() {
+                abrirModalNuevo() {
                     this.modoEdicion = false;
-                    this.form = { idCliente: 0, dni: '', nombre: '', apellido: '', email: '' };
-                    this.bsModal.show();
+                    this.form = { idCliente: 0, dni: '', nombre: '', apellido: '', fechaNacimiento: '', telefono: '', email: '' };
+                    this.modalInstance.show();
                 },
                 abrirModalEditar(cliente) {
                     this.modoEdicion = true;
-                    this.form = { ...cliente };
-                    this.bsModal.show();
+                    this.form = {
+                        idCliente: cliente.idCliente,
+                        dni: cliente.dni,
+                        nombre: cliente.nombre,
+                        apellido: cliente.apellido,
+                        fechaNacimiento: cliente.fechaNacimiento ? cliente.fechaNacimiento.split('T')[0] : '',
+                        telefono: cliente.telefono,
+                        email: cliente.email
+                    };
+                    this.modalInstance.show();
                 },
                 async guardarCliente() {
                     this.guardando = true;
@@ -156,22 +183,23 @@
                         } else {
                             await axios.post('/api/ClientesApi', this.form);
                         }
-                        this.bsModal.hide();
+                        this.modalInstance.hide();
                         await this.cargarClientes();
                     } catch (err) {
-                        alert('Ocurrió un error al procesar la solicitud.');
+                        alert("Error al guardar el cliente.");
+                        console.error(err);
                     } finally {
                         this.guardando = false;
                     }
                 },
                 async eliminarCliente(id) {
-                    if (confirm('¿Seguro que deseas eliminar este cliente?')) {
-                        try {
-                            await axios.delete(`/api/ClientesApi/${id}`);
-                            await this.cargarClientes();
-                        } catch (err) {
-                            alert('Error al eliminar el cliente.');
-                        }
+                    if (!confirm("¿Está seguro de eliminar este cliente?")) return;
+                    try {
+                        await axios.delete(`/api/ClientesApi/${id}`);
+                        await this.cargarClientes();
+                    } catch (err) {
+                        alert("Error al eliminar el cliente.");
+                        console.error(err);
                     }
                 }
             }
