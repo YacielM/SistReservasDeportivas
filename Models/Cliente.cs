@@ -20,9 +20,11 @@ namespace SistReservasDeportivas.Models
         [DataType(DataType.Date)]
         public DateTime FechaNacimiento { get; set; }
 
-        public string? Telefono { get; set; }
+        [Required]
+        public string Telefono { get; set; } = string.Empty;
 
-        public string? Email { get; set; }
+        [Required]
+        public string Email { get; set; } = string.Empty;
 
         public List<Reserva> Reservas { get; set; } = new();
 
