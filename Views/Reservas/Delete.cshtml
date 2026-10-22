@@ -1,44 +1,47 @@
 @model SistReservasDeportivas.Models.Reserva
 
-<h2 class="mb-3 text-danger">Eliminar Reserva</h2>
+@{
+    ViewData["Title"] = "Cancelar Reserva";
+}
 
-<div class="alert alert-warning">
-    <strong>¿Seguro que deseas eliminar esta reserva?</strong>
-    Esta acción no se puede deshacer.
-</div>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
-<div class="card shadow-sm mb-3">
-    <div class="card-body">
-        <dl class="row">
-            <dt class="col-sm-3">Cliente</dt>
-            <dd class="col-sm-9">@Model.Cliente!.Nombre @Model.Cliente.Apellido</dd>
+<div class="container my-4">
+    <div class="card bg-dark text-white border-danger shadow">
+        <div class="card-header bg-danger text-white py-3">
+            <h4 class="fw-bold mb-0">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>Confirmar Cancelación de Reserva
+            </h4>
+        </div>
+        <div class="card-body p-4">
+            <p class="fs-5 mb-4">¿Estás seguro de que deseas cancelar la reserva <strong class="text-info">#@Model.IdReserva</strong> del cliente <strong class="text-light">@Model.Cliente?.Nombre @Model.Cliente?.Apellido</strong>?</p>
 
-            <dt class="col-sm-3">Cancha</dt>
-            <dd class="col-sm-9">@Model.Cancha!.Nombre (@Model.Cancha.Tipo)</dd>
+            <dl class="row fs-5">
+                <dt class="col-sm-3 text-info">Cancha:</dt>
+                <dd class="col-sm-9">@Model.Cancha?.Nombre (@Model.Cancha?.Tipo)</dd>
 
-            <dt class="col-sm-3">Fecha</dt>
-            <dd class="col-sm-9">@Model.Fecha.ToShortDateString()</dd>
+                <dt class="col-sm-3 text-info">Fecha:</dt>
+                <dd class="col-sm-9">@Model.Fecha.ToShortDateString()</dd>
 
-            <dt class="col-sm-3">Hora Inicio</dt>
-            <dd class="col-sm-9">@Model.HoraInicio</dd>
+                <dt class="col-sm-3 text-info">Horario:</dt>
+                <dd class="col-sm-9">@Model.HoraInicio.ToString(@"hh\:mm") - @Model.HoraFin.ToString(@"hh\:mm")</dd>
 
-            <dt class="col-sm-3">Hora Fin</dt>
-            <dd class="col-sm-9">@Model.HoraFin</dd>
+                <dt class="col-sm-3 text-info">Monto:</dt>
+                <dd class="col-sm-9 text-success fw-bold">@Model.Monto.ToString("C")</dd>
+            </dl>
 
-            <dt class="col-sm-3">Monto</dt>
-            <dd class="col-sm-9">@Model.Monto.ToString("C")</dd>
-        </dl>
+            <form asp-action="Delete" method="post" class="mt-4">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="IdReserva" />
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-danger fw-bold">
+                        <i class="bi bi-x-circle me-1"></i> Confirmar Cancelación
+                    </button>
+                    <a asp-action="Index" class="btn btn-outline-light">
+                        <i class="bi bi-arrow-left me-1"></i> Volver
+                    </a>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
-
-<form asp-action="Delete">
-    <input type="hidden" asp-for="IdReserva" />
-    <div class="d-flex gap-2">
-        <button type="submit" class="btn btn-danger">
-            <i class="bi bi-trash"></i> Eliminar
-        </button>
-        <a asp-action="Index" class="btn btn-secondary">
-            <i class="bi bi-arrow-left"></i> Cancelar
-        </a>
-    </div>
-</form>

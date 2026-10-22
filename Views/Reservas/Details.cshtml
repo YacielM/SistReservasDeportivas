@@ -1,44 +1,94 @@
 @model SistReservasDeportivas.Models.Reserva
 
-<h2 class="mb-3">Detalles de la Reserva</h2>
+@{
+    ViewData["Title"] = "Detalles de Reserva";
+    var pagoAsociado = Model.Pagos?.FirstOrDefault();
+}
 
-<div class="card shadow-sm">
-    <div class="card-body">
-        <dl class="row">
-            <dt class="col-sm-3">Cliente</dt>
-            <dd class="col-sm-9">@Model.Cliente!.Nombre @Model.Cliente.Apellido</dd>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
-            <dt class="col-sm-3">Cancha</dt>
-            <dd class="col-sm-9">@Model.Cancha!.Nombre (@Model.Cancha.Tipo)</dd>
+<div class="container my-4">
+    <div class="card bg-dark text-white border-secondary shadow">
+        <div class="card-header bg-dark border-secondary d-flex justify-content-between align-items-center py-3">
+            <h4 class="fw-bold text-info mb-0">
+                <i class="bi bi-info-circle me-2"></i>Detalles de Reserva #@Model.IdReserva
+            </h4>
+            <div>
+                @if (Model.Cancelada)
+                {
+                    <span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>Cancelada</span>
+                }
+                else if (Model.Fecha.Date.Add(Model.HoraFin) < DateTime.Now)
+                {
+                    <span class="badge bg-secondary"><i class="bi bi-clock-history me-1"></i>Finalizada</span>
+                }
+                else
+                {
+                    <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Activa</span>
+                }
+            </div>
+        </div>
+        <div class="card-body p-4">
+            <dl class="row fs-5 mb-0">
+                <dt class="col-sm-3 text-info fw-semibold">Cliente:</dt>
+                <dd class="col-sm-9">@Model.Cliente?.Nombre @Model.Cliente?.Apellido <span class="text-muted small">(DNI: @Model.Cliente?.Dni)</span></dd>
 
-            <dt class="col-sm-3">Fecha</dt>
-            <dd class="col-sm-9">@Model.Fecha.ToShortDateString()</dd>
+                <dt class="col-sm-3 text-info fw-semibold">Cancha:</dt>
+                <dd class="col-sm-9">@Model.Cancha?.Nombre <span class="text-muted small">(@Model.Cancha?.Tipo)</span></dd>
 
-            <dt class="col-sm-3">Hora Inicio</dt>
-            <dd class="col-sm-9">@Model.HoraInicio</dd>
+                <dt class="col-sm-3 text-info fw-semibold">Fecha:</dt>
+                <dd class="col-sm-9">@Model.Fecha.ToLongDateString()</dd>
 
-            <dt class="col-sm-3">Hora Fin</dt>
-            <dd class="col-sm-9">@Model.HoraFin</dd>
+                <dt class="col-sm-3 text-info fw-semibold">Horario:</dt>
+                <dd class="col-sm-9">
+                    <span class="badge bg-dark border border-secondary text-light">
+                        @Model.HoraInicio.ToString(@"hh\:mm") - @Model.HoraFin.ToString(@"hh\:mm")
+                    </span>
+                </dd>
 
-            <dt class="col-sm-3">Monto</dt>
-            <dd class="col-sm-9">@Model.Monto.ToString("C")</dd>
-        </dl>
+                <dt class="col-sm-3 text-info fw-semibold">Monto Total:</dt>
+                <dd class="col-sm-9 text-success fw-bold">@Model.Monto.ToString("C")</dd>
 
-        <div class="mt-3 d-flex gap-2">
+                <dt class="col-sm-3 text-info fw-semibold">Estado de Pago:</dt>
+                <dd class="col-sm-9">
+                    @if (pagoAsociado != null)
+                    {
+                        if (pagoAsociado.EstadoPago == "Pagado")
+                        {
+                            <span class="badge bg-success me-2"><i class="bi bi-check-circle me-1"></i>Pagado (@pagoAsociado.MetodoPago)</span>
+                        }
+                        else if (pagoAsociado.EstadoPago == "Pendiente")
+                        {
+                            <span class="badge bg-warning text-dark me-2"><i class="bi bi-clock me-1"></i>Pendiente</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-danger me-2"><i class="bi bi-x-circle me-1"></i>Anulado</span>
+                        }
+                    }
+                    else
+                    {
+                        <span class="text-muted small">Sin registro de pago</span>
+                    }
+                </dd>
+
+                <dt class="col-sm-3 text-info fw-semibold">Registrado por:</dt>
+                <dd class="col-sm-9 text-muted fs-6">@Model.CreadoPor</dd>
+            </dl>
+        </div>
+        <div class="card-footer bg-dark border-secondary d-flex gap-2 py-3">
+            @if (pagoAsociado != null)
+            {
+                <a asp-controller="Pagos" asp-action="Details" asp-route-id="@pagoAsociado.IdPago" class="btn btn-success fw-bold">
+                    <i class="bi bi-wallet2 me-1"></i> Ver Detalles del Pago
+                </a>
+            }
             <a asp-action="Edit" asp-route-id="@Model.IdReserva" class="btn btn-warning">
-                <i class="bi bi-pencil-square"></i> Editar
+                <i class="bi bi-pencil-square me-1"></i> Editar Reserva
             </a>
-            <form asp-action="Cancelar" method="post" class="d-inline">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="id" value="@Model.IdReserva" />
-                <button type="submit" class="btn btn-danger">
-                    <i class="bi bi-x-circle"></i> Cancelar Reserva
-                </button>
-            </form>
-            <a asp-action="Index" class="btn btn-secondary">
-                <i class="bi bi-arrow-left"></i> Volver
+            <a asp-action="Index" class="btn btn-outline-light">
+                <i class="bi bi-arrow-left me-1"></i> Volver
             </a>
         </div>
-
     </div>
 </div>

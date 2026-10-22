@@ -7,7 +7,7 @@ using SistReservasDeportivas.Models;
 
 namespace SistReservasDeportivas.Controllers
 {
-    [Authorize(Roles = "Administrador,Empleado")]
+    [Authorize]
     public class ReservasController : Controller
     {
         private readonly DataContext _context;
@@ -17,32 +17,32 @@ namespace SistReservasDeportivas.Controllers
             _context = context;
         }
 
-        private void CargarCombos(int? idCliente = null, int? idCancha = null)
-        {
-            ViewData["IdCliente"] = new SelectList(_context.Clientes, "IdCliente", "Nombre", idCliente);
-            ViewData["IdCancha"] = new SelectList(_context.Canchas, "IdCancha", "Nombre", idCancha);
-        }
-
         // GET: Reservas
         public async Task<IActionResult> Index(string search, string estado, string sortOrder, int page = 1)
         {
             int pageSize = 10;
+            ViewData["CurrentSearch"] = search;
+            ViewData["CurrentEstado"] = estado;
+            ViewData["CurrentSort"] = sortOrder;
+
             var query = _context.Reservas
                 .Include(r => r.Cliente)
                 .Include(r => r.Cancha)
+                .Include(r => r.Pagos)
                 .AsQueryable();
 
-            // 1. Buscador
+            // 1. Buscador por cliente o cancha
             if (!string.IsNullOrWhiteSpace(search))
             {
-                string term = search.Trim().ToLower();
+                var term = search.ToLower().Trim();
                 query = query.Where(r =>
                     (r.Cliente != null && (r.Cliente.Nombre + " " + r.Cliente.Apellido).ToLower().Contains(term)) ||
+                    (r.Cliente != null && r.Cliente.Dni.Contains(term)) ||
                     (r.Cancha != null && r.Cancha.Nombre.ToLower().Contains(term))
                 );
             }
 
-            // 2. Filtro Estado traducible a SQL
+            // 2. Filtro por Estado (compatible con SQL)
             if (!string.IsNullOrWhiteSpace(estado))
             {
                 var ahora = DateTime.Now;
@@ -65,31 +65,23 @@ namespace SistReservasDeportivas.Controllers
                 }
             }
 
-            // 3. Ordenamiento
-            switch (sortOrder)
+            // 3. Orden
+            query = sortOrder switch
             {
-                case "fecha_asc":
-                    query = query.OrderBy(r => r.Fecha).ThenBy(r => r.HoraInicio);
-                    break;
-                case "fecha_desc":
-                default:
-                    query = query.OrderByDescending(r => r.Fecha).ThenByDescending(r => r.HoraInicio);
-                    break;
-            }
+                "fecha_asc" => query.OrderBy(r => r.Fecha).ThenBy(r => r.HoraInicio),
+                _ => query.OrderByDescending(r => r.Fecha).ThenByDescending(r => r.HoraInicio)
+            };
 
             int totalRegistros = await query.CountAsync();
-            int totalPages = (int)Math.Ceiling(totalRegistros / (double)pageSize);
+            int totalPages = (int)Math.Ceiling((double)totalRegistros / pageSize);
 
             var reservas = await query
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
 
-            ViewData["CurrentSearch"] = search;
-            ViewData["CurrentEstado"] = estado;
-            ViewData["CurrentSort"] = sortOrder;
-            ViewData["CurrentPage"] = page;
             ViewData["TotalPages"] = totalPages;
+            ViewData["CurrentPage"] = page;
 
             return View(reservas);
         }
@@ -102,6 +94,7 @@ namespace SistReservasDeportivas.Controllers
             var reserva = await _context.Reservas
                 .Include(r => r.Cliente)
                 .Include(r => r.Cancha)
+                .Include(r => r.Pagos)
                 .FirstOrDefaultAsync(m => m.IdReserva == id);
 
             if (reserva == null) return NotFound();
@@ -119,12 +112,12 @@ namespace SistReservasDeportivas.Controllers
         // POST: Reservas/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("IdReserva,IdCancha,IdCliente,Fecha,HoraInicio,HoraFin,Monto,CreadoPor")] Reserva reserva)
+        public async Task<IActionResult> Create([Bind("IdReserva,IdCancha,IdCliente,Fecha,HoraInicio,HoraFin,Monto")] Reserva reserva)
         {
-            ModelState.Remove(nameof(Reserva.Cliente));
-            ModelState.Remove(nameof(Reserva.Cancha));
+            // 1. Asignar usuario logueado
+            reserva.CreadoPor = User.Identity?.Name ?? "Sistema";
 
-            // 1. Validar bloqueo por Saldo Deudor
+            // 2. Control estricto de deuda del cliente
             var cliente = await _context.Clientes
                 .Include(c => c.Reservas)
                     .ThenInclude(r => r.Pagos)
@@ -132,34 +125,21 @@ namespace SistReservasDeportivas.Controllers
 
             if (cliente != null && cliente.SaldoDeudor > 0)
             {
-                ModelState.AddModelError("", $"El cliente {cliente.Nombre} {cliente.Apellido} registra una deuda de {cliente.SaldoDeudor:C} por turnos vencidos no abonados. Debe regularizar su situación antes de registrar un nuevo turno.");
+                ModelState.AddModelError("", $"El cliente {cliente.Nombre} {cliente.Apellido} posee una deuda acumulada de {cliente.SaldoDeudor:C}. Debe regularizar su situación antes de realizar una nueva reserva.");
             }
 
-            // 2. Validar duración mínima
-            if (reserva.HoraFin <= reserva.HoraInicio.Add(TimeSpan.FromHours(1)))
-            {
-                ModelState.AddModelError("HoraFin", "La reserva debe tener al menos 1 hora de duración.");
-            }
+            // 3. Control de solapamiento de horarios en la misma cancha
+            bool solapado = await _context.Reservas.AnyAsync(r =>
+                r.IdCancha == reserva.IdCancha &&
+                r.Fecha.Date == reserva.Fecha.Date &&
+                !r.Cancelada &&
+                ((reserva.HoraInicio >= r.HoraInicio && reserva.HoraInicio < r.HoraFin) ||
+                 (reserva.HoraFin > r.HoraInicio && reserva.HoraFin <= r.HoraFin) ||
+                 (reserva.HoraInicio <= r.HoraInicio && reserva.HoraFin >= r.HoraFin)));
 
-            // 3. Validar horarios solapados
-            var solapada = await _context.Reservas
-                .Where(r => r.IdCancha == reserva.IdCancha && r.Fecha.Date == reserva.Fecha.Date && !r.Cancelada)
-                .AnyAsync(r => (reserva.HoraInicio < r.HoraFin) && (reserva.HoraFin > r.HoraInicio));
-
-            if (solapada)
+            if (solapado)
             {
-                ModelState.AddModelError("", "Ya existe una reserva en ese horario para la misma cancha.");
-            }
-
-            // 4. Calcular Monto
-            var cancha = await _context.Canchas.FindAsync(reserva.IdCancha);
-            if (cancha != null)
-            {
-                var horas = (reserva.HoraFin - reserva.HoraInicio).TotalHours;
-                if (horas > 0)
-                {
-                    reserva.Monto = cancha.PrecioHora * (decimal)horas;
-                }
+                ModelState.AddModelError("", "La cancha ya se encuentra reservada en el rango horario seleccionado.");
             }
 
             if (ModelState.IsValid)
@@ -167,21 +147,16 @@ namespace SistReservasDeportivas.Controllers
                 _context.Add(reserva);
                 await _context.SaveChangesAsync();
 
-                var usuarioNombre = HttpContext.Session.GetString("UsuarioNombre");
-                var usuarioApellido = HttpContext.Session.GetString("UsuarioApellido");
-
+                // Generar automáticamente el registro de Pago en estado Pendiente
                 var pago = new Pago
                 {
                     IdReserva = reserva.IdReserva,
                     Importe = reserva.Monto,
                     Fecha = DateTime.Now,
+                    MetodoPago = "Sin registrar",
                     EstadoPago = "Pendiente",
-                    MetodoPago = null,
-                    CreadoPor = (usuarioNombre != null && usuarioApellido != null)
-                        ? $"{usuarioNombre} {usuarioApellido}"
-                        : "Sistema"
+                    CreadoPor = User.Identity?.Name ?? "Sistema"
                 };
-
                 _context.Pagos.Add(pago);
                 await _context.SaveChangesAsync();
 
@@ -200,7 +175,7 @@ namespace SistReservasDeportivas.Controllers
             var reserva = await _context.Reservas
                 .Include(r => r.Cliente)
                 .Include(r => r.Cancha)
-                .FirstOrDefaultAsync(m => m.IdReserva == id);
+                .FirstOrDefaultAsync(r => r.IdReserva == id);
 
             if (reserva == null) return NotFound();
 
@@ -211,35 +186,23 @@ namespace SistReservasDeportivas.Controllers
         // POST: Reservas/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("IdReserva,IdCancha,IdCliente,Fecha,HoraInicio,HoraFin,Monto,CreadoPor")] Reserva reserva)
+        public async Task<IActionResult> Edit(int id, [Bind("IdReserva,IdCancha,IdCliente,Fecha,HoraInicio,HoraFin,Monto,Cancelada,CreadoPor")] Reserva reserva)
         {
             if (id != reserva.IdReserva) return NotFound();
 
-            ModelState.Remove(nameof(Reserva.Cliente));
-            ModelState.Remove(nameof(Reserva.Cancha));
+            // Validar solapamiento excluyendo la propia reserva
+            bool solapado = await _context.Reservas.AnyAsync(r =>
+                r.IdReserva != reserva.IdReserva &&
+                r.IdCancha == reserva.IdCancha &&
+                r.Fecha.Date == reserva.Fecha.Date &&
+                !r.Cancelada &&
+                ((reserva.HoraInicio >= r.HoraInicio && reserva.HoraInicio < r.HoraFin) ||
+                 (reserva.HoraFin > r.HoraInicio && reserva.HoraFin <= r.HoraFin) ||
+                 (reserva.HoraInicio <= r.HoraInicio && reserva.HoraFin >= r.HoraFin)));
 
-            if (reserva.HoraFin <= reserva.HoraInicio.Add(TimeSpan.FromHours(1)))
+            if (solapado)
             {
-                ModelState.AddModelError("HoraFin", "La reserva debe tener al menos 1 hora de duración.");
-            }
-
-            var solapada = await _context.Reservas
-                .Where(r => r.IdCancha == reserva.IdCancha && r.Fecha.Date == reserva.Fecha.Date && r.IdReserva != reserva.IdReserva && !r.Cancelada)
-                .AnyAsync(r => (reserva.HoraInicio < r.HoraFin) && (reserva.HoraFin > r.HoraInicio));
-
-            if (solapada)
-            {
-                ModelState.AddModelError("", "Ya existe una reserva en ese horario para la misma cancha.");
-            }
-
-            var cancha = await _context.Canchas.FindAsync(reserva.IdCancha);
-            if (cancha != null)
-            {
-                var horas = (reserva.HoraFin - reserva.HoraInicio).TotalHours;
-                if (horas > 0)
-                {
-                    reserva.Monto = cancha.PrecioHora * (decimal)horas;
-                }
+                ModelState.AddModelError("", "La cancha ya posee otro turno reservado en el horario seleccionado.");
             }
 
             if (ModelState.IsValid)
@@ -248,7 +211,7 @@ namespace SistReservasDeportivas.Controllers
                 {
                     _context.Update(reserva);
 
-                    // Sincronizar el importe del pago si aún está en estado Pendiente
+                    // Sincronizar el importe en la tabla de Pagos si sigue Pendiente
                     var pago = await _context.Pagos.FirstOrDefaultAsync(p => p.IdReserva == reserva.IdReserva);
                     if (pago != null && pago.EstadoPago == "Pendiente")
                     {
@@ -272,31 +235,7 @@ namespace SistReservasDeportivas.Controllers
             return View(reserva);
         }
 
-        // POST: Reservas/Cancelar/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Cancelar(int id)
-        {
-            var reserva = await _context.Reservas.FindAsync(id);
-            if (reserva != null)
-            {
-                reserva.Cancelada = true;
-                _context.Update(reserva);
-
-                var pago = await _context.Pagos.FirstOrDefaultAsync(p => p.IdReserva == id);
-                if (pago != null)
-                {
-                    pago.EstadoPago = "Anulado";
-                    _context.Update(pago);
-                }
-
-                await _context.SaveChangesAsync();
-            }
-            return RedirectToAction(nameof(Index));
-        }
-
         // GET: Reservas/Delete/5
-        [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null) return NotFound();
@@ -314,16 +253,38 @@ namespace SistReservasDeportivas.Controllers
         // POST: Reservas/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var reserva = await _context.Reservas.FindAsync(id);
             if (reserva != null)
             {
-                _context.Reservas.Remove(reserva);
+                reserva.Cancelada = true;
+                _context.Reservas.Update(reserva);
+
+                // Anular el pago asociado si estaba pendiente
+                var pago = await _context.Pagos.FirstOrDefaultAsync(p => p.IdReserva == id);
+                if (pago != null && pago.EstadoPago == "Pendiente")
+                {
+                    pago.EstadoPago = "Anulado";
+                    _context.Pagos.Update(pago);
+                }
+
                 await _context.SaveChangesAsync();
             }
             return RedirectToAction(nameof(Index));
+        }
+
+        private void CargarCombos(int? idCliente = null, int? idCancha = null)
+        {
+            ViewData["IdCliente"] = new SelectList(_context.Clientes.Select(c => new {
+                c.IdCliente,
+                NombreCompleto = c.Nombre + " " + c.Apellido + " (DNI: " + c.Dni + ")"
+            }), "IdCliente", "NombreCompleto", idCliente);
+
+            ViewData["IdCancha"] = new SelectList(_context.Canchas.Select(c => new {
+                c.IdCancha,
+                NombreCompleto = c.Nombre + " (" + c.Tipo + " - " + c.PrecioHora.ToString("C") + "/hs)"
+            }), "IdCancha", "NombreCompleto", idCancha);
         }
     }
 }
