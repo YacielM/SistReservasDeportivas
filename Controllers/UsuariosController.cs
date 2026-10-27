@@ -1,99 +1,81 @@
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using SistReservasDeportivas.Data;
 using SistReservasDeportivas.Models;
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
-using Microsoft.AspNetCore.Identity;
 
 namespace SistReservasDeportivas.Controllers
 {
-    [Authorize(Roles = "Administrador")]
+    [Authorize]
     public class UsuariosController : Controller
     {
         private readonly DataContext _context;
-        private readonly IConfiguration _config;
-        private readonly PasswordHasher<Usuario> _passwordHasher;
+        private readonly IWebHostEnvironment _environment;
 
-        public UsuariosController(DataContext context, IConfiguration config)
+        public UsuariosController(DataContext context, IWebHostEnvironment environment)
         {
             _context = context;
-            _config = config;
-            _passwordHasher = new PasswordHasher<Usuario>();
+            _environment = environment;
         }
 
-        // =====================
-        // LOGIN (JWT API)
-        // =====================
-        [AllowAnonymous]
-        [HttpPost]
-        public async Task<IActionResult> Login([FromBody] LoginDto dto)
-        {
-            var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.Email == dto.Email);
-            if (usuario == null)
-                return Unauthorized("Usuario o clave incorrectos");
-
-            var result = _passwordHasher.VerifyHashedPassword(usuario, usuario.Clave, dto.Clave);
-            if (result == PasswordVerificationResult.Failed)
-                return Unauthorized("Usuario o clave incorrectos");
-
-            var claims = new[]
-            {
-                new Claim(JwtRegisteredClaimNames.Sub, usuario.IdUsuario.ToString()),
-                new Claim(JwtRegisteredClaimNames.Email, usuario.Email),
-                new Claim(ClaimTypes.Role, usuario.Rol)
-            };
-
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-            var token = new JwtSecurityToken(
-                issuer: _config["Jwt:Issuer"],
-                audience: _config["Jwt:Issuer"],
-                claims: claims,
-                expires: DateTime.Now.AddHours(2),
-                signingCredentials: creds
-            );
-
-            return Ok(new
-            {
-                token = new JwtSecurityTokenHandler().WriteToken(token),
-                usuario = new { usuario.IdUsuario, usuario.Nombre, usuario.Apellido, usuario.Email, usuario.Rol }
-            });
-        }
-
-        // =====================
-        // LISTADO
-        // =====================
+        // GET: Usuarios
+        [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Index()
         {
-            return View(await _context.Usuarios.ToListAsync());
+            var usuarios = await _context.Usuarios.ToListAsync();
+            return View(usuarios);
         }
 
-        // =====================
-        // CREAR USUARIO
-        // =====================
+        // GET: Usuarios/Details/5
+        [Authorize(Roles = "Administrador")]
+        public async Task<IActionResult> Details(int? id)
+        {
+            if (id == null) return NotFound();
+
+            var usuario = await _context.Usuarios.FirstOrDefaultAsync(m => m.IdUsuario == id);
+            if (usuario == null) return NotFound();
+
+            return View(usuario);
+        }
+
+        // GET: Usuarios/Create
+        [Authorize(Roles = "Administrador")]
         public IActionResult Create()
         {
             return View();
         }
 
+        // POST: Usuarios/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(Usuario usuario, IFormFile? AvatarFile)
+        [Authorize(Roles = "Administrador")]
+        public async Task<IActionResult> Create([Bind("IdUsuario,Nombre,Apellido,Email,Clave,Rol")] Usuario usuario, IFormFile? AvatarFile)
         {
+            if (await _context.Usuarios.AnyAsync(u => u.Email == usuario.Email))
+            {
+                ModelState.AddModelError("Email", "El correo electrónico ya se encuentra registrado.");
+            }
+
             if (ModelState.IsValid)
             {
-                usuario.Clave = _passwordHasher.HashPassword(usuario, usuario.Clave);
+                // Hashear contraseña
+                var passwordHasher = new PasswordHasher<Usuario>();
+                usuario.Clave = passwordHasher.HashPassword(usuario, usuario.Clave);
 
+                // Guardar Avatar
                 if (AvatarFile != null && AvatarFile.Length > 0)
                 {
-                    var fileName = Guid.NewGuid() + Path.GetExtension(AvatarFile.FileName);
-                    var path = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/avatars", fileName);
-                    using (var stream = new FileStream(path, FileMode.Create))
+                    var uploadsFolder = Path.Combine(_environment.WebRootPath, "avatars");
+                    if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
+
+                    var fileName = Guid.NewGuid().ToString() + "_" + Path.GetFileName(AvatarFile.FileName);
+                    var filePath = Path.Combine(uploadsFolder, fileName);
+
+                    using (var stream = new FileStream(filePath, FileMode.Create))
                     {
                         await AvatarFile.CopyToAsync(stream);
                     }
@@ -107,80 +89,104 @@ namespace SistReservasDeportivas.Controllers
             return View(usuario);
         }
 
-        // =====================
-        // EDITAR USUARIO
-        // =====================
-        public async Task<IActionResult> Edit(int? id)
+        // GET: Usuarios/Edit/5
+        [Authorize(Roles = "Administrador")]
+        public async Task<IActionResult> Edit(int? id, string? returnUrl = null)
         {
             if (id == null) return NotFound();
+
             var usuario = await _context.Usuarios.FindAsync(id);
             if (usuario == null) return NotFound();
+
+            ViewData["ReturnUrl"] = returnUrl;
             return View(usuario);
         }
 
+        // POST: Usuarios/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, Usuario usuario, IFormFile? AvatarFile)
+        [Authorize(Roles = "Administrador")]
+        public async Task<IActionResult> Edit(int id, [Bind("IdUsuario,Nombre,Apellido,Email,Rol,Avatar")] Usuario usuario, string? nuevaClave, IFormFile? AvatarFile, string? returnUrl = null)
         {
             if (id != usuario.IdUsuario) return NotFound();
 
             var dbUsuario = await _context.Usuarios.FindAsync(id);
             if (dbUsuario == null) return NotFound();
 
+            // Ignorar la validación de la clave en la edición para que no falle el ModelState
+            ModelState.Remove("Clave");
+
             if (ModelState.IsValid)
             {
-                dbUsuario.Nombre = usuario.Nombre;
-                dbUsuario.Apellido = usuario.Apellido;
-                dbUsuario.Email = usuario.Email;
-                dbUsuario.Rol = usuario.Rol;
-
-                if (!string.IsNullOrEmpty(usuario.Clave))
+                try
                 {
-                    dbUsuario.Clave = _passwordHasher.HashPassword(dbUsuario, usuario.Clave);
-                }
+                    dbUsuario.Nombre = usuario.Nombre;
+                    dbUsuario.Apellido = usuario.Apellido;
+                    dbUsuario.Email = usuario.Email;
+                    dbUsuario.Rol = usuario.Rol;
 
-                if (AvatarFile != null && AvatarFile.Length > 0)
-                {
-                    var fileName = Guid.NewGuid() + Path.GetExtension(AvatarFile.FileName);
-                    var path = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/avatars", fileName);
-                    using (var stream = new FileStream(path, FileMode.Create))
+                    // Si se ingresó una nueva contraseña, hashearla
+                    if (!string.IsNullOrWhiteSpace(nuevaClave))
                     {
-                        await AvatarFile.CopyToAsync(stream);
+                        var passwordHasher = new PasswordHasher<Usuario>();
+                        dbUsuario.Clave = passwordHasher.HashPassword(dbUsuario, nuevaClave);
                     }
-                    dbUsuario.Avatar = fileName;
+
+                    // Reemplazar avatar si se subió uno nuevo
+                    if (AvatarFile != null && AvatarFile.Length > 0)
+                    {
+                        var uploadsFolder = Path.Combine(_environment.WebRootPath, "avatars");
+                        if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
+
+                        var fileName = Guid.NewGuid().ToString() + "_" + Path.GetFileName(AvatarFile.FileName);
+                        var filePath = Path.Combine(uploadsFolder, fileName);
+
+                        using (var stream = new FileStream(filePath, FileMode.Create))
+                        {
+                            await AvatarFile.CopyToAsync(stream);
+                        }
+                        dbUsuario.Avatar = fileName;
+                    }
+
+                    _context.Update(dbUsuario);
+                    await _context.SaveChangesAsync();
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    if (!_context.Usuarios.Any(e => e.IdUsuario == usuario.IdUsuario))
+                        return NotFound();
+                    else
+                        throw;
                 }
 
-                _context.Update(dbUsuario);
-                await _context.SaveChangesAsync();
+                if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                {
+                    return Redirect(returnUrl);
+                }
+
                 return RedirectToAction(nameof(Index));
             }
+
+            ViewData["ReturnUrl"] = returnUrl;
             return View(usuario);
         }
 
-        // =====================
-        // DETALLES
-        // =====================
-        public async Task<IActionResult> Details(int? id)
-        {
-            if (id == null) return NotFound();
-            var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.IdUsuario == id);
-            if (usuario == null) return NotFound();
-            return View(usuario);
-        }
-
-        // =====================
-        // ELIMINAR
-        // =====================
+        // GET: Usuarios/Delete/5
+        [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null) return NotFound();
-            var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.IdUsuario == id);
+
+            var usuario = await _context.Usuarios.FirstOrDefaultAsync(m => m.IdUsuario == id);
             if (usuario == null) return NotFound();
+
             return View(usuario);
         }
 
+        // POST: Usuarios/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var usuario = await _context.Usuarios.FindAsync(id);
@@ -190,6 +196,22 @@ namespace SistReservasDeportivas.Controllers
                 await _context.SaveChangesAsync();
             }
             return RedirectToAction(nameof(Index));
+        }
+
+        // --- AUTENTICACIÓN / LOGOUT ---
+
+        [AllowAnonymous]
+        public async Task<IActionResult> Logout()
+        {
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            HttpContext.Session.Clear();
+            return RedirectToAction("Login", "Account");
+        }
+
+        [AllowAnonymous]
+        public IActionResult AccessDenied()
+        {
+            return View();
         }
     }
 }

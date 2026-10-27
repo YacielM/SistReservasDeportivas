@@ -1,48 +1,86 @@
 @model SistReservasDeportivas.Models.Usuario
 
-<h2>Editar Usuario</h2>
+@{
+    ViewData["Title"] = "Editar Usuario";
+    string? returnUrl = ViewData["ReturnUrl"] as string;
+    string cancelUrl = !string.IsNullOrEmpty(returnUrl) ? returnUrl : Url.Action("Index")!;
+}
 
-<form asp-action="Edit" enctype="multipart/form-data">
-    @Html.AntiForgeryToken()
-    <input type="hidden" asp-for="IdUsuario" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
-    <div class="mb-3">
-        <label asp-for="Nombre" class="form-label"></label>
-        <input asp-for="Nombre" class="form-control" />
+<div class="container my-4">
+    <h2 class="text-white mb-4 fw-bold">
+        <i class="bi bi-pencil-square text-warning me-2"></i>Editar Usuario
+    </h2>
+
+    <div class="card bg-dark text-white border-secondary shadow">
+        <div class="card-body p-4">
+            <form asp-action="Edit" enctype="multipart/form-data" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="IdUsuario" />
+                <input type="hidden" asp-for="Avatar" />
+                <input type="hidden" name="returnUrl" value="@returnUrl" />
+
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger bg-danger text-white border-0 mb-4"></div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="Nombre" class="form-label text-info fw-semibold">Nombre *</label>
+                        <input asp-for="Nombre" class="form-control bg-secondary text-white border-0" required />
+                        <span asp-validation-for="Nombre" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="Apellido" class="form-label text-info fw-semibold">Apellido *</label>
+                        <input asp-for="Apellido" class="form-control bg-secondary text-white border-0" required />
+                        <span asp-validation-for="Apellido" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="Email" class="form-label text-info fw-semibold">Email *</label>
+                        <input asp-for="Email" type="email" class="form-control bg-secondary text-white border-0" required />
+                        <span asp-validation-for="Email" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label text-info fw-semibold">Nueva Contraseña (Opcional)</label>
+                        <input type="password" name="nuevaClave" class="form-control bg-secondary text-white border-0" placeholder="Dejar en blanco para mantener la actual" autocomplete="new-password" />
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="Rol" class="form-label text-info fw-semibold">Rol de Usuario *</label>
+                        <select asp-for="Rol" class="form-select bg-secondary text-white border-0" required>
+                            <option value="Empleado">Empleado</option>
+                            <option value="Administrador">Administrador</option>
+                        </select>
+                        <span asp-validation-for="Rol" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label text-info fw-semibold">Avatar de Perfil</label>
+                        <div class="d-flex align-items-center gap-3">
+                            @if (!string.IsNullOrEmpty(Model.Avatar))
+                            {
+                                <img src="~/avatars/@Model.Avatar" class="rounded-circle border border-secondary" width="50" height="50" style="object-fit: cover;" />
+                            }
+                            <input type="file" name="AvatarFile" class="form-control bg-secondary text-white border-0" accept="image/*" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 d-flex gap-2">
+                    <button type="submit" class="btn btn-warning fw-bold">
+                        <i class="bi bi-save me-1"></i> Guardar Cambios
+                    </button>
+                    <a href="@cancelUrl" class="btn btn-outline-light">
+                        <i class="bi bi-arrow-left me-1"></i> Cancelar
+                    </a>
+                </div>
+            </form>
+        </div>
     </div>
+</div>
 
-    <div class="mb-3">
-        <label asp-for="Apellido" class="form-label"></label>
-        <input asp-for="Apellido" class="form-control" />
-    </div>
-
-    <div class="mb-3">
-        <label asp-for="Email" class="form-label"></label>
-        <input asp-for="Email" class="form-control" />
-    </div>
-
-    <div class="mb-3">
-        <label asp-for="Rol" class="form-label"></label>
-        <select asp-for="Rol" class="form-select">
-            <option value="Administrador">Administrador</option>
-            <option value="Empleado">Empleado</option>
-        </select>
-    </div>
-
-    <div class="mb-3">
-        <label asp-for="Clave" class="form-label">Nueva Clave (opcional)</label>
-        <input asp-for="Clave" type="password" class="form-control" />
-    </div>
-
-    <div class="mb-3">
-        <label class="form-label">Avatar</label>
-        <input type="file" name="AvatarFile" class="form-control" />
-        @if (!string.IsNullOrEmpty(Model.Avatar))
-        {
-            <img src="~/avatars/@Model.Avatar" width="80" class="rounded-circle mt-2" />
-        }
-    </div>
-
-    <button type="submit" class="btn btn-success">Guardar</button>
-    <a asp-action="Index" class="btn btn-secondary">Volver</a>
-</form>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

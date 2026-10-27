@@ -22,15 +22,16 @@ namespace SistReservasDeportivas.Controllers
 
         // GET: Account/Login
         [HttpGet]
-        public IActionResult Login()
+        public IActionResult Login(string? returnUrl = null)
         {
+            ViewData["ReturnUrl"] = returnUrl;
             return View();
         }
 
         // POST: Account/Login
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Login(LoginDto dto)
+        public async Task<IActionResult> Login(LoginDto dto, string? returnUrl = null)
         {
             if (!ModelState.IsValid)
                 return View(dto);
@@ -69,17 +70,19 @@ namespace SistReservasDeportivas.Controllers
                     ExpiresUtc = DateTimeOffset.UtcNow.AddHours(2)
                 });
 
-            // Opcional: datos para el layout vía sesión
+            // Datos para el layout vía sesión
             HttpContext.Session.SetString("UsuarioNombre", usuario.Nombre);
             HttpContext.Session.SetString("UsuarioApellido", usuario.Apellido);
             HttpContext.Session.SetString("UsuarioRol", usuario.Rol);
             HttpContext.Session.SetString("UsuarioEmail", usuario.Email);
 
-            // Redirigir según rol
-            if (usuario.Rol == "Administrador")
-                return RedirectToAction("Index", "Usuarios");
-            else
-                return RedirectToAction("Index", "Reservas");
+            // Redirección al Inicio (Dashboard principal)
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+            {
+                return Redirect(returnUrl);
+            }
+
+            return RedirectToAction("Index", "Home");
         }
 
         // GET: Account/Logout
@@ -87,7 +90,7 @@ namespace SistReservasDeportivas.Controllers
         {
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
             HttpContext.Session.Clear();
-            return RedirectToAction("Login");
+            return RedirectToAction("Login", "Account");
         }
 
         // GET: Account/AccessDenied
