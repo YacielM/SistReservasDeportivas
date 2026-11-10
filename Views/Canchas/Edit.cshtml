@@ -32,6 +32,7 @@
                     <div class="col-md-6">
                         <label asp-for="Tipo" class="form-label text-info fw-semibold">Tipo / Deporte *</label>
                         <select asp-for="Tipo" class="form-select bg-secondary text-white border-0" required>
+                            <option value="">Seleccione un deporte...</option>
                             <option value="Fútbol 5">Fútbol 5</option>
                             <option value="Fútbol 7">Fútbol 7</option>
                             <option value="Fútbol 11">Fútbol 11</option>
@@ -42,10 +43,10 @@
                         <span asp-validation-for="Tipo" class="text-danger small"></span>
                     </div>
 
-                    <!-- Precio por Hora -->
+                    <!-- Precio por Hora (Usando la cultura actual para que use la coma decimal correcta) -->
                     <div class="col-md-6">
                         <label asp-for="PrecioHora" class="form-label text-info fw-semibold">Precio por Hora ($) *</label>
-                        <input asp-for="PrecioHora" type="text" class="form-control bg-secondary text-white border-0" required />
+                        <input asp-for="PrecioHora" type="text" value="@Model.PrecioHora.ToString("0.00", System.Globalization.CultureInfo.CurrentCulture)" class="form-control bg-secondary text-white border-0" required />
                         <span asp-validation-for="PrecioHora" class="text-danger small"></span>
                     </div>
 
@@ -60,13 +61,21 @@
                         <span asp-validation-for="Estado" class="text-danger small"></span>
                     </div>
 
-                    <!-- Previsualización de Foto y Subida de Nueva -->
+                    <!-- Previsualización de Foto y Subida / Eliminación -->
                     <div class="col-md-12">
-                        <label class="form-label text-info fw-semibold">Imagen Actual / Reemplazar</label>
-                        <div class="d-flex align-items-center gap-3 mb-2">
+                        <label class="form-label text-info fw-semibold">Imagen de la Cancha</label>
+                        <div class="d-flex align-items-center gap-3 mb-2 flex-wrap">
                             @if (!string.IsNullOrEmpty(Model.Foto))
                             {
-                                <img src="~/canchas/@Model.Foto" width="100" height="70" style="object-fit: cover;" class="rounded border border-secondary" />
+                                <div>
+                                    <img src="~/canchas/@Model.Foto" width="100" height="70" style="object-fit: cover;" class="rounded border border-secondary d-block mb-1" />
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="eliminarFoto" value="true" id="eliminarFoto" />
+                                        <label class="form-check-label text-danger small fw-semibold" for="eliminarFoto">
+                                            Eliminar foto actual
+                                        </label>
+                                    </div>
+                                </div>
                             }
                             else
                             {
@@ -74,10 +83,12 @@
                                     Sin foto
                                 </div>
                             }
-                            <input type="file" name="FotoArchivo" class="form-control bg-secondary text-white border-0" accept="image/*" />
+                            <div class="flex-grow-1">
+                                <label class="form-label text-muted small mb-1">Subir o reemplazar imagen:</label>
+                                <input type="file" name="FotoFile" class="form-control bg-secondary text-white border-0" accept="image/*" />
+                            </div>
                         </div>
                     </div>
-                </div>
 
                 <div class="mt-4 d-flex gap-2">
                     <button type="submit" class="btn btn-warning fw-bold">

@@ -51,9 +51,9 @@ namespace SistReservasDeportivas.Controllers.Api
                     .ThenInclude(r => r.Pagos)
                 .FirstOrDefaultAsync(c => c.IdCliente == id);
 
-            if (cliente == null) return NotFound();
+            if (cliente == null) return NotFound(new { message = "Cliente no encontrado." });
 
-            return new {
+            return Ok(new {
                 cliente.IdCliente,
                 cliente.Dni,
                 cliente.Nombre,
@@ -61,16 +61,29 @@ namespace SistReservasDeportivas.Controllers.Api
                 cliente.FechaNacimiento,
                 cliente.Telefono,
                 cliente.Email,
-                saldoDeudor = cliente.SaldoDeudor
-            };
+                cliente.SaldoDeudor
+            });
         }
 
         // POST: api/ClientesApi
         [HttpPost]
         public async Task<ActionResult<Cliente>> PostCliente(Cliente cliente)
         {
+            // Validación de DNI duplicado
+            if (await _context.Clientes.AnyAsync(c => c.Dni == cliente.Dni))
+            {
+                return BadRequest(new { message = "Ya existe un cliente registrado con el mismo DNI." });
+            }
+
+            // Validación de Email duplicado (si se proporciona)
+            if (!string.IsNullOrEmpty(cliente.Email) && await _context.Clientes.AnyAsync(c => c.Email == cliente.Email))
+            {
+                return BadRequest(new { message = "El correo electrónico ya se encuentra registrado." });
+            }
+
             _context.Clientes.Add(cliente);
             await _context.SaveChangesAsync();
+
             return CreatedAtAction(nameof(GetCliente), new { id = cliente.IdCliente }, cliente);
         }
 
@@ -78,9 +91,32 @@ namespace SistReservasDeportivas.Controllers.Api
         [HttpPut("{id}")]
         public async Task<IActionResult> PutCliente(int id, Cliente cliente)
         {
-            if (id != cliente.IdCliente) return BadRequest();
+            if (id != cliente.IdCliente) return BadRequest(new { message = "El ID del cliente no coincide." });
+
+            // Validar DNI duplicado en otro cliente
+            if (await _context.Clientes.AnyAsync(c => c.Dni == cliente.Dni && c.IdCliente != id))
+            {
+                return BadRequest(new { message = "Ya existe otro cliente con el mismo DNI." });
+            }
+
             _context.Entry(cliente).State = EntityState.Modified;
-            await _context.SaveChangesAsync();
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!_context.Clientes.Any(e => e.IdCliente == id))
+                {
+                    return NotFound(new { message = "Cliente no encontrado." });
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
             return NoContent();
         }
 
@@ -89,10 +125,21 @@ namespace SistReservasDeportivas.Controllers.Api
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCliente(int id)
         {
-            var cliente = await _context.Clientes.FindAsync(id);
-            if (cliente == null) return NotFound();
+            var cliente = await _context.Clientes
+                .Include(c => c.Reservas)
+                .FirstOrDefaultAsync(c => c.IdCliente == id);
+
+            if (cliente == null) return NotFound(new { message = "Cliente no encontrado." });
+
+            // Validación: No permitir borrar si tiene reservas asociadas
+            if (cliente.Reservas != null && cliente.Reservas.Any())
+            {
+                return BadRequest(new { message = "No se puede eliminar el cliente porque posee reservas asociadas en el sistema." });
+            }
+
             _context.Clientes.Remove(cliente);
             await _context.SaveChangesAsync();
+
             return NoContent();
         }
 
@@ -104,10 +151,10 @@ namespace SistReservasDeportivas.Controllers.Api
             var clientes = await _context.Clientes
                 .Include(c => c.Reservas)
                     .ThenInclude(r => r.Pagos)
-                .Where(c => string.IsNullOrEmpty(q) || 
-                            c.Dni.Contains(q) || 
-                            c.Nombre.Contains(q) || 
-                            c.Apellido.Contains(q) || 
+                .Where(c => string.IsNullOrEmpty(q) ||
+                            c.Dni.Contains(q) ||
+                            c.Nombre.Contains(q) ||
+                            c.Apellido.Contains(q) ||
                             (c.Nombre + " " + c.Apellido).Contains(q))
                 .Select(c => new {
                     idCliente = c.IdCliente,

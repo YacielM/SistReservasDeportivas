@@ -180,6 +180,16 @@ namespace SistReservasDeportivas.Controllers
             var usuario = await _context.Usuarios.FirstOrDefaultAsync(m => m.IdUsuario == id);
             if (usuario == null) return NotFound();
 
+            // Obtener el ID del usuario que está logueado actualmente
+            var currentUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+            // Validar si se intenta borrar a sí mismo
+            if (usuario.IdUsuario == currentUserId)
+            {
+                TempData["Error"] = "No puedes eliminar tu propia cuenta de administrador mientras estás en sesión.";
+                return RedirectToAction(nameof(Index));
+            }
+
             return View(usuario);
         }
 
@@ -189,10 +199,30 @@ namespace SistReservasDeportivas.Controllers
         [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var usuario = await _context.Usuarios.FindAsync(id);
-            if (usuario != null)
+            var currentUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+            // Doble validación de seguridad en el POST
+            if (id == currentUserId)
             {
-                _context.Usuarios.Remove(usuario);
+                TempData["Error"] = "Operación no permitida: No puedes eliminar tu propia cuenta.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            // Opcional: Evitar borrar al último administrador del sistema
+            var usuarioAEliminar = await _context.Usuarios.FindAsync(id);
+            if (usuarioAEliminar != null)
+            {
+                if (usuarioAEliminar.Rol == "Administrador")
+                {
+                    var totalAdmins = await _context.Usuarios.CountAsync(u => u.Rol == "Administrador");
+                    if (totalAdmins <= 1)
+                    {
+                        TempData["Error"] = "No se puede eliminar al único administrador restante del sistema.";
+                        return RedirectToAction(nameof(Index));
+                    }
+                }
+
+                _context.Usuarios.Remove(usuarioAEliminar);
                 await _context.SaveChangesAsync();
             }
             return RedirectToAction(nameof(Index));
