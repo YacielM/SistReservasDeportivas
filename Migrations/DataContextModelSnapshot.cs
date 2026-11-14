@@ -43,7 +43,7 @@ namespace SistReservasDeportivas.Migrations
                         .HasColumnType("varchar(100)");
 
                     b.Property<decimal>("PrecioHora")
-                        .HasColumnType("decimal(65,30)");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("Tipo")
                         .IsRequired()
@@ -74,6 +74,7 @@ namespace SistReservasDeportivas.Migrations
                         .HasColumnType("varchar(10)");
 
                     b.Property<string>("Email")
+                        .IsRequired()
                         .HasColumnType("longtext");
 
                     b.Property<DateTime>("FechaNacimiento")
@@ -85,6 +86,7 @@ namespace SistReservasDeportivas.Migrations
                         .HasColumnType("varchar(100)");
 
                     b.Property<string>("Telefono")
+                        .IsRequired()
                         .HasColumnType("longtext");
 
                     b.HasKey("IdCliente");

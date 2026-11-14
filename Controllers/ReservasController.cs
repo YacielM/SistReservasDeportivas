@@ -114,10 +114,16 @@ namespace SistReservasDeportivas.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("IdReserva,IdCancha,IdCliente,Fecha,HoraInicio,HoraFin,Monto")] Reserva reserva)
         {
-            // 1. Asignar usuario logueado
+            // Validar que la hora fin sea posterior a la hora de inicio
+            if (reserva.HoraFin <= reserva.HoraInicio)
+            {
+                ModelState.AddModelError("HoraFin", "La hora de finalización debe ser posterior a la hora de inicio.");
+            }
+
+            // 1. Asignar usuario logueado[cite: 25, 26]
             reserva.CreadoPor = User.Identity?.Name ?? "Sistema";
 
-            // 2. Control estricto de deuda del cliente
+            // 2. Control estricto de deuda del cliente[cite: 26]
             var cliente = await _context.Clientes
                 .Include(c => c.Reservas)
                     .ThenInclude(r => r.Pagos)
@@ -128,14 +134,14 @@ namespace SistReservasDeportivas.Controllers
                 ModelState.AddModelError("", $"El cliente {cliente.Nombre} {cliente.Apellido} posee una deuda acumulada de {cliente.SaldoDeudor:C}. Debe regularizar su situación antes de realizar una nueva reserva.");
             }
 
-            // 3. Control de solapamiento de horarios en la misma cancha
+            // 3. Control de solapamiento de horarios en la misma cancha[cite: 26]
             bool solapado = await _context.Reservas.AnyAsync(r =>
                 r.IdCancha == reserva.IdCancha &&
                 r.Fecha.Date == reserva.Fecha.Date &&
                 !r.Cancelada &&
                 ((reserva.HoraInicio >= r.HoraInicio && reserva.HoraInicio < r.HoraFin) ||
-                 (reserva.HoraFin > r.HoraInicio && reserva.HoraFin <= r.HoraFin) ||
-                 (reserva.HoraInicio <= r.HoraInicio && reserva.HoraFin >= r.HoraFin)));
+                (reserva.HoraFin > r.HoraInicio && reserva.HoraFin <= r.HoraFin) ||
+                (reserva.HoraInicio <= r.HoraInicio && reserva.HoraFin >= r.HoraFin)));
 
             if (solapado)
             {
@@ -147,7 +153,7 @@ namespace SistReservasDeportivas.Controllers
                 _context.Add(reserva);
                 await _context.SaveChangesAsync();
 
-                // Generar automáticamente el registro de Pago en estado Pendiente
+                // Generar automáticamente el registro de Pago en estado Pendiente[cite: 26, 27]
                 var pago = new Pago
                 {
                     IdReserva = reserva.IdReserva,
@@ -190,15 +196,21 @@ namespace SistReservasDeportivas.Controllers
         {
             if (id != reserva.IdReserva) return NotFound();
 
-            // Validar solapamiento excluyendo la propia reserva
+            // Validar que la hora fin sea posterior a la hora de inicio
+            if (reserva.HoraFin <= reserva.HoraInicio)
+            {
+                ModelState.AddModelError("HoraFin", "La hora de finalización debe ser posterior a la hora de inicio.");
+            }
+
+            // Validar solapamiento excluyendo la propia reserva[cite: 28]
             bool solapado = await _context.Reservas.AnyAsync(r =>
                 r.IdReserva != reserva.IdReserva &&
                 r.IdCancha == reserva.IdCancha &&
                 r.Fecha.Date == reserva.Fecha.Date &&
                 !r.Cancelada &&
                 ((reserva.HoraInicio >= r.HoraInicio && reserva.HoraInicio < r.HoraFin) ||
-                 (reserva.HoraFin > r.HoraInicio && reserva.HoraFin <= r.HoraFin) ||
-                 (reserva.HoraInicio <= r.HoraInicio && reserva.HoraFin >= r.HoraFin)));
+                (reserva.HoraFin > r.HoraInicio && reserva.HoraFin <= r.HoraFin) ||
+                (reserva.HoraInicio <= r.HoraInicio && reserva.HoraFin >= r.HoraFin)));
 
             if (solapado)
             {
@@ -211,7 +223,7 @@ namespace SistReservasDeportivas.Controllers
                 {
                     _context.Update(reserva);
 
-                    // Sincronizar el importe en la tabla de Pagos si sigue Pendiente
+                    // Sincronizar el importe en la tabla de Pagos si sigue Pendiente[cite: 28]
                     var pago = await _context.Pagos.FirstOrDefaultAsync(p => p.IdReserva == reserva.IdReserva);
                     if (pago != null && pago.EstadoPago == "Pendiente")
                     {
@@ -255,13 +267,22 @@ namespace SistReservasDeportivas.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var reserva = await _context.Reservas.FindAsync(id);
+            // Respaldo por si el formulario envía IdReserva en lugar de id
+            if (id == 0 && Request.Form.ContainsKey("IdReserva"))
+            {
+                int.TryParse(Request.Form["IdReserva"], out id);
+            }
+
+            var reserva = await _context.Reservas
+                .Include(r => r.Pagos)
+                .FirstOrDefaultAsync(r => r.IdReserva == id);
+
             if (reserva != null)
             {
                 reserva.Cancelada = true;
                 _context.Reservas.Update(reserva);
 
-                // Anular el pago asociado si estaba pendiente
+                // Anular el pago asociado solo si existe y está pendiente[cite: 29, 30]
                 var pago = await _context.Pagos.FirstOrDefaultAsync(p => p.IdReserva == id);
                 if (pago != null && pago.EstadoPago == "Pendiente")
                 {
@@ -271,6 +292,7 @@ namespace SistReservasDeportivas.Controllers
 
                 await _context.SaveChangesAsync();
             }
+
             return RedirectToAction(nameof(Index));
         }
 

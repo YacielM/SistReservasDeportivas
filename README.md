@@ -77,10 +77,19 @@ Permite gestionar clientes, canchas, reservas y pagos, con validaciones de negoc
     Configurar la base de datos en appsettings.json
 
     Ajustar la cadena de conexión a tu servidor MySQL.
+   
+    Seleccionar la carpeta desde la terminal con
+        cd SistReservasDeportivas
 
     Ejecutar migraciones, eso crearía la estructura de tablas
 
         dotnet ef database update
+
+    En el caso que se tenga cambios pendientes se ejecuta el siguiente comando:
+
+        dotnet ef migrations add SincronizarModelos
+
+     Y se vuelve a ejecutar el comando: dotnet ef database update
 
     Levantar el proyecto
 

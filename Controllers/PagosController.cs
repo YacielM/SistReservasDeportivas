@@ -190,18 +190,27 @@ namespace SistReservasDeportivas.Controllers
             return View(pago);
         }
 
-        // POST: Pagos/Delete/5
+        // POST: Pagos/Delete/5 (Anulación lógica / Soft Delete financiero)
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
+            // Respaldo de seguridad por si el formulario envía el ID con otro nombre
+            if (id == 0 && Request.Form.ContainsKey("IdPago"))
+            {
+                int.TryParse(Request.Form["IdPago"], out id);
+            }
+
             var pago = await _context.Pagos.FindAsync(id);
             if (pago != null)
             {
-                _context.Pagos.Remove(pago);
+                // SOFT DELETE: En lugar de borrar físicamente, pasamos el estado a Anulado
+                pago.EstadoPago = "Anulado";
+                _context.Pagos.Update(pago);
                 await _context.SaveChangesAsync();
             }
+            
             return RedirectToAction(nameof(Index));
         }
     }
