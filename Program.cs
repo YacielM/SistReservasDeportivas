@@ -96,6 +96,18 @@ app.MapControllerRoute(
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
 // Ejecutar seed de datos
-SistReservasDeportivas.Data.SeedData.Initialize(app.Services);
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        SeedData.Initialize(services);
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "Ocurrió un error al poblar la base de datos.");
+    }
+}
 
 app.Run();

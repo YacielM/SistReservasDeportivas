@@ -76,17 +76,20 @@
                 <dd class="col-sm-9 text-muted fs-6">@Model.CreadoPor</dd>
             </dl>
         </div>
-        <div class="card-footer bg-dark border-secondary d-flex gap-2 py-3">
+        <div class="card-footer bg-dark border-secondary d-flex flex-wrap gap-2 py-3">
             @if (pagoAsociado != null)
             {
                 <a asp-controller="Pagos" asp-action="Details" asp-route-id="@pagoAsociado.IdPago" class="btn btn-success fw-bold">
-                    <i class="bi bi-wallet2 me-1"></i> Ver Detalles del Pago
+                    <i class="bi bi-wallet2 me-1"></i> Ver Pago
                 </a>
             }
             <a asp-action="Edit" asp-route-id="@Model.IdReserva" class="btn btn-warning">
-                <i class="bi bi-pencil-square me-1"></i> Editar Reserva
+                <i class="bi bi-pencil-square me-1"></i> Editar
             </a>
-            <a asp-action="Index" class="btn btn-outline-light">
+            <a asp-action="Delete" asp-route-id="@Model.IdReserva" class="btn btn-danger">
+                <i class="bi bi-trash me-1"></i> Cancelar Reserva
+            </a>
+            <a asp-action="Index" class="btn btn-outline-light ms-auto">
                 <i class="bi bi-arrow-left me-1"></i> Volver
             </a>
         </div>

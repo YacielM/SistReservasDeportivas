@@ -126,8 +126,8 @@
                         }
                         @foreach (var r in Model)
                         {
-                            <tr>
-                                <td class="text-center fw-bold">#@r.IdReserva</td>
+                            <tr style="cursor: pointer;" onclick="window.location.href='@Url.Action("Details", "Reservas", new { id = r.IdReserva })'">
+                                <td class="text-center fw-bold text-info">#@r.IdReserva</td>
                                 <td><strong>@r.Cliente?.Nombre @r.Cliente?.Apellido</strong></td>
                                 <td>@r.Cancha?.Nombre <span class="text-muted">(@r.Cancha?.Tipo)</span></td>
                                 <td class="text-center">@r.Fecha.ToShortDateString()</td>

@@ -78,21 +78,20 @@
                             <th class="text-end">Importe</th>
                             <th class="text-center">Estado</th>
                             <th class="text-center">Método</th>
-                            <th>Fecha</th>
-                            <th class="text-center" style="width: 180px;">Acciones</th>
+                            <th class="text-center">Fecha</th>
                         </tr>
                     </thead>
                     <tbody>
                     @if (!Model.Any())
                     {
                         <tr>
-                            <td colspan="8" class="text-center py-4 text-muted">No se encontraron registros de pago.</td>
+                            <td colspan="7" class="text-center py-4 text-muted">No se encontraron registros de pago.</td>
                         </tr>
                     }
                     @foreach (var item in Model)
                     {
-                        <tr>
-                            <td class="text-center fw-bold">#@item.Reserva?.IdReserva</td>
+                        <tr style="cursor: pointer;" onclick="window.location.href='@Url.Action("Details", new { id = item.IdPago })'">
+                            <td class="text-center fw-bold text-info">#@item.Reserva?.IdReserva</td>
                             <td>
                                 <strong>@item.Reserva?.Cliente?.Nombre @item.Reserva?.Cliente?.Apellido</strong>
                             </td>
@@ -115,20 +114,7 @@
                             <td class="text-center">
                                 <span class="badge bg-secondary">@(string.IsNullOrEmpty(item.MetodoPago) ? "Sin registrar" : item.MetodoPago)</span>
                             </td>
-                            <td>@item.Fecha.ToShortDateString()</td>
-                            <td class="text-center">
-                                <div class="btn-group btn-group-sm">
-                                    <a asp-action="Details" asp-route-id="@item.IdPago" class="btn btn-info text-white" title="Ver Detalles">
-                                        <i class="bi bi-eye"></i>
-                                    </a>
-                                    <a asp-action="Edit" asp-route-id="@item.IdPago" class="btn btn-warning" title="Registrar / Editar Pago">
-                                        <i class="bi bi-pencil-square"></i>
-                                    </a>
-                                    <a asp-action="Delete" asp-route-id="@item.IdPago" class="btn btn-danger" title="Eliminar">
-                                        <i class="bi bi-trash"></i>
-                                    </a>
-                                </div>
-                            </td>
+                            <td class="text-center">@item.Fecha.ToShortDateString()</td>
                         </tr>
                     }
                     </tbody>

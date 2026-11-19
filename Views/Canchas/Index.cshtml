@@ -23,7 +23,12 @@
         @foreach (var cancha in Model)
         {
             <div class="col">
-                <div class="card bg-dark text-white border-secondary shadow h-100">
+                <div class="card bg-dark text-white border-secondary shadow h-100 card-clickable" 
+                     style="cursor: pointer; transition: transform 0.2s ease, border-color 0.2s ease;"
+                     onclick="window.location.href='@Url.Action("Details", new { id = cancha.IdCancha })'"
+                     onmouseover="this.style.borderColor='#0dcaf0'; this.style.transform='translateY(-3px)';"
+                     onmouseout="this.style.borderColor='#6c757d'; this.style.transform='translateY(0)';">
+                    
                     <!-- Imagen de Cancha / Placeholder Oscuro -->
                     <div style="height: 200px; overflow: hidden;" class="bg-secondary bg-opacity-25 d-flex align-items-center justify-content-center rounded-top">
                         @if (!string.IsNullOrEmpty(cancha.Foto))
@@ -60,21 +65,8 @@
                         </div>
                     </div>
 
-                    <div class="card-footer bg-dark border-secondary d-flex justify-content-between">
-                        <a asp-action="Details" asp-route-id="@cancha.IdCancha" class="btn btn-sm btn-info text-white">
-                            <i class="bi bi-eye me-1"></i> Detalles
-                        </a>
-                        @if (User.IsInRole("Administrador"))
-                        {
-                            <div class="btn-group btn-group-sm">
-                                <a asp-action="Edit" asp-route-id="@cancha.IdCancha" class="btn btn-warning">
-                                    <i class="bi bi-pencil-square"></i>
-                                </a>
-                                <a asp-action="Delete" asp-route-id="@cancha.IdCancha" class="btn btn-danger">
-                                    <i class="bi bi-trash"></i>
-                                </a>
-                            </div>
-                        }
+                    <div class="card-footer bg-dark border-secondary d-flex justify-content-between align-items-center" onclick="event.stopPropagation();">
+                        <span class="text-muted small"><i class="bi bi-hand-index me-1"></i>Click para ver detalles</span>
                     </div>
                 </div>
             </div>

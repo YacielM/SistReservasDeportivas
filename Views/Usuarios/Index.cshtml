@@ -28,21 +28,20 @@
                             <th class="ps-3" style="width: 70px;">Avatar</th>
                             <th>Nombre Completo</th>
                             <th>Email</th>
-                            <th class="text-center">Rol</th>
-                            <th class="text-center pe-3" style="width: 150px;">Acciones</th>
+                            <th class="text-center pe-3">Rol</th>
                         </tr>
                     </thead>
                     <tbody>
                         @if (!Model.Any())
                         {
                             <tr>
-                                <td colspan="5" class="text-center py-4 text-muted">No hay usuarios registrados.</td>
+                                <td colspan="4" class="text-center py-4 text-muted">No hay usuarios registrados.</td>
                             </tr>
                         }
                         @foreach (var user in Model)
                         {
-                            <tr>
-                                <td class="ps-3">
+                            <tr style="cursor: pointer;" onclick="window.location.href='@Url.Action("Details", new { id = user.IdUsuario })'">
+                                <td class="ps-3" onclick="event.stopPropagation();">
                                     @if (!string.IsNullOrEmpty(user.Avatar))
                                     {
                                         <img src="~/avatars/@user.Avatar" class="rounded-circle border border-secondary" width="40" height="40" style="object-fit: cover;" />
@@ -56,7 +55,7 @@
                                 </td>
                                 <td><strong>@user.Nombre @user.Apellido</strong></td>
                                 <td>@user.Email</td>
-                                <td class="text-center">
+                                <td class="text-center pe-3">
                                     @if (user.Rol == "Administrador")
                                     {
                                         <span class="badge bg-danger shadow-sm"><i class="bi bi-shield-fill-check me-1"></i>Administrador</span>
@@ -65,19 +64,6 @@
                                     {
                                         <span class="badge bg-info text-white shadow-sm"><i class="bi bi-person-badge me-1"></i>Empleado</span>
                                     }
-                                </td>
-                                <td class="text-center pe-3">
-                                    <div class="btn-group btn-group-sm">
-                                        <a asp-action="Details" asp-route-id="@user.IdUsuario" class="btn btn-info text-white" title="Ver Detalles">
-                                            <i class="bi bi-eye"></i>
-                                        </a>
-                                        <a asp-action="Edit" asp-route-id="@user.IdUsuario" class="btn btn-warning" title="Editar">
-                                            <i class="bi bi-pencil-square"></i>
-                                        </a>
-                                        <a asp-action="Delete" asp-route-id="@user.IdUsuario" class="btn btn-danger" title="Eliminar">
-                                            <i class="bi bi-trash"></i>
-                                        </a>
-                                    </div>
                                 </td>
                             </tr>
                         }
